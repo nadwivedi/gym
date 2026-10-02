@@ -42,7 +42,7 @@ export default function Members() {
       </header>
       <div className="page">
         <div className="search-box">
-          <input className="search" type="search" placeholder="Search name, phone or member number" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="search" type="search" placeholder="Search name, phone or number" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {!text && (
           <div className="chips">

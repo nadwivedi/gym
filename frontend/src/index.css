@@ -1580,6 +1580,13 @@ button.stat {
   box-shadow: 0 0 0 4px rgb(37 99 235 / 0.14);
 }
 
+/* On a phone the hint text is smaller so it fits; what you type stays at 16px (no iPhone zoom). */
+@media (max-width: 480px) {
+  .search::placeholder {
+    font-size: 13px;
+  }
+}
+
 .search-box {
   padding: 10px;
   border-radius: 14px;
