@@ -28,6 +28,14 @@ npm --prefix frontend run build     # build the screens; `npm --prefix backend s
 - `backend/src`: Express API on MongoDB (`gymsoft` database; override with `MONGO_URL`, `PORT`)
 - `frontend/src`: React screens (`pages/`) and bottom-sheet forms (`sheets/`)
 
+## WhatsApp reminders
+
+`backend/src/whatsapp` sends renewal reminders through Baileys (no browser). Link the gym's number once under **Settings → WhatsApp reminders**.
+
+- Two messages per member and renewal date, never more: on the renewal date and 2 days after, only if not renewed and not hidden.
+- On demand: the server connects only when a reminder is pending and disconnects after 60 seconds idle. The login is stored in MongoDB.
+- Sent between 8:00 and 21:00, at most 10 an hour and 40 a day, a few seconds apart. Change with `WHATSAPP_*` environment variables (see `whatsapp/config.js`).
+
 ## Rules worth knowing
 
 - Dates are stored as `YYYY-MM-DD`. A membership covers its start date up to, not including, its renewal date.

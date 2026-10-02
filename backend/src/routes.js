@@ -6,6 +6,7 @@ import { Expense, ExpenseCategory, Member, Payment, Period, Plan, getSettings, l
 import { loadSummaries, memberDetail, moneyFor } from './service.js'
 import { buildYearStats } from './stats.js'
 import { dateOf, fail, idOf, intOf, moneyOf, phoneOf, str } from './validate.js'
+import { whatsappRoutes } from './whatsapp/routes.js'
 
 const MAX_PIN_FAILS = 5
 const LOCK_MS = 60000
@@ -718,6 +719,8 @@ export function api() {
       expenseCategories,
     })
   })
+
+  r.use('/whatsapp', whatsappRoutes())
 
   r.use((req, res) => res.status(404).json({ error: 'Not found' }))
   return r

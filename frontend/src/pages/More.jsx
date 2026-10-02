@@ -19,6 +19,18 @@ export default function More({ onLock }) {
         <h1>Settings</h1>
       </header>
       <div className="page">
+        <Link to="/whatsapp" className="card row">
+          <span className="avatar wa">
+            <Icon name="chat" />
+          </span>
+          <div className="row-main">
+            <div className="row-title">WhatsApp reminders</div>
+            <div className="row-sub">Automatic renewal messages: link your number, message text, sent log.</div>
+          </div>
+          <span className="flip">
+            <Icon name="back" />
+          </span>
+        </Link>
         <Plans />
         <ExpenseCategories />
 

@@ -106,6 +106,8 @@ const Settings = model(
       admissionFee: { type: Number, default: 0 },
       overdueDays: { type: Number, default: 15 },
       countryCode: { type: String, default: '91' },
+      // Automatic WhatsApp renewal reminders on / off.
+      waEnabled: { type: Boolean, default: true },
     },
     { versionKey: false },
   ),

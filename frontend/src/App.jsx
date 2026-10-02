@@ -11,6 +11,7 @@ import Members from './pages/Members.jsx'
 import More from './pages/More.jsx'
 import Payments from './pages/Payments.jsx'
 import Renewals from './pages/Renewals.jsx'
+import WhatsApp from './pages/WhatsApp.jsx'
 import AddMemberSheet from './sheets/AddMemberSheet.jsx'
 
 export default function App() {
@@ -64,6 +65,7 @@ function Shell({ onLock }) {
             <Route path="/payments" element={<Payments />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/more" element={<More onLock={onLock} />} />
+            <Route path="/whatsapp" element={<WhatsApp />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

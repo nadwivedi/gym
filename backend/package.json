@@ -13,7 +13,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
     "express": "^5.2.1",
-    "mongoose": "^9.10.3"
+    "mongoose": "^9.10.3",
+    "qrcode": "^1.5.4"
   }
 }

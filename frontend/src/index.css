@@ -994,6 +994,53 @@ button.stat {
   background: none;
 }
 
+/* WhatsApp page. */
+.avatar.wa {
+  background: linear-gradient(135deg, #22c55e, #0d9488);
+}
+
+.avatar.wa .icon,
+.avatar.off .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.qr-card h3 {
+  font-size: 1rem;
+}
+
+.qr-card img {
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
+  border: 2px solid var(--border);
+  max-width: 100%;
+  height: auto;
+}
+
+.qr-card ol {
+  margin: 0;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.qr-card .btn-grid {
+  width: 100%;
+}
+
+.box.mt {
+  margin-top: 10px;
+}
+
+
 /* Expense rows and the category manager. */
 .avatar.expense {
   background: linear-gradient(135deg, #f59e0b, #ea580c);
