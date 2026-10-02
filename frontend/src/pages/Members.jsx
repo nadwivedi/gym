@@ -1,0 +1,61 @@
+import { useState } from 'react'
+import { useLoad } from '../api.js'
+import { Loading, MemberRow } from '../components/ui.jsx'
+import { useApp } from '../context.js'
+
+const FILTERS = [
+  { key: 'all', label: 'All', test: (s) => !s.hidden },
+  { key: 'active', label: 'Active', test: (s) => !s.hidden && s.status === 'active' },
+  { key: 'expired', label: 'Expired', test: (s) => !s.hidden && s.status === 'expired' },
+  { key: 'dues', label: 'Dues pending', test: (s) => s.balance > 0 },
+  { key: 'upcoming', label: 'Not started', test: (s) => !s.hidden && s.status === 'upcoming' },
+  { key: 'hidden', label: 'Hidden', test: (s) => s.hidden },
+]
+
+export default function Members() {
+  const { openAdd } = useApp()
+  const { data, error } = useLoad('/members')
+  const [q, setQ] = useState('')
+  const [filter, setFilter] = useState('all')
+
+  const text = q.trim().toLowerCase()
+  const matches = (s) => s.name.toLowerCase().includes(text) || s.phone.includes(text) || String(s.memberNo) === text
+  const test = FILTERS.find((f) => f.key === filter).test
+  // A search looks through everyone, including hidden members.
+  const rows = data ? data.filter((s) => (text ? matches(s) : test(s))) : []
+
+  return (
+    <>
+      <header className="topbar">
+        <h1>
+          Members {data && <span className="sub">· {rows.length}</span>}
+        </h1>
+        <button className="btn small primary" onClick={openAdd}>
+          + Add
+        </button>
+      </header>
+      <div className="page">
+        <input className="search" type="search" placeholder="Search name, phone or member number" value={q} onChange={(e) => setQ(e.target.value)} />
+        {!text && (
+          <div className="chips">
+            {FILTERS.map((f) => (
+              <button key={f.key} className={`chip ${filter === f.key ? 'active' : ''}`} onClick={() => setFilter(f.key)}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {!data ? (
+          <Loading error={error} />
+        ) : (
+          <div className="list">
+            {rows.map((s) => (
+              <MemberRow key={s.id} s={s} />
+            ))}
+            {!rows.length && <div className="empty">{data.length ? 'No members match.' : 'No members yet. Tap + Add to admit your first member.'}</div>}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
