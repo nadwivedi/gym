@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { addMonths } from '../../../shared/domain.mjs'
 import { api, saveWithDuplicateCheck, useAction } from '../api.js'
-import { DateInput, MoneyInput, PayNowFields, PhoneInput, PlanPicker } from '../components/fields.jsx'
+import { DateInput, MoneyInput, PayNowFields, PersonalFields, PhoneInput, PlanPicker } from '../components/fields.jsx'
 import { ErrorBox, Field, Group, Section, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
-import { fmtDate, payNowBody, promisedBody } from '../format.js'
+import { fmtDate, payNowBody, personalBody, promisedBody } from '../format.js'
 
 export default function AddMemberSheet({ onClose }) {
   const { today, plans, settings } = useApp()
@@ -15,6 +15,7 @@ export default function AddMemberSheet({ onClose }) {
   const [phone, setPhone] = useState('')
   const [gender, setGender] = useState('')
   const [notes, setNotes] = useState('')
+  const [personal, setPersonal] = useState({ address: '', dob: '', age: '' })
   const [plan, setPlan] = useState(firstPlan)
   const [startDate, setStartDate] = useState(today)
   const [fee, setFee] = useState(firstPlan ? String(firstPlan.price) : '')
@@ -36,6 +37,7 @@ export default function AddMemberSheet({ onClose }) {
             phone,
             gender,
             notes,
+            ...personalBody(personal),
             force,
             membership: {
               planId: plan.id,
@@ -75,6 +77,18 @@ export default function AddMemberSheet({ onClose }) {
               </select>
             </Field>
           </div>
+          <details className="more">
+            <summary>
+              Additional details
+              <small>address, date of birth, notes</small>
+            </summary>
+            <div className="form">
+              <PersonalFields value={personal} onChange={setPersonal} />
+              <Field label="Notes">
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} rows={2} />
+              </Field>
+            </div>
+          </details>
         </Section>
 
         <Section num="2" title="Membership">
@@ -109,9 +123,6 @@ export default function AddMemberSheet({ onClose }) {
           <PayNowFields total={total} value={pay} onChange={setPay} />
         </Section>
 
-        <Field label="Notes (optional)">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
-        </Field>
         <ErrorBox error={error} />
         <button className="btn primary block" disabled={busy || !plan || Number(pay.amount) > total}>
           {busy ? 'Saving…' : 'Admit member'}

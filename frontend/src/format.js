@@ -34,6 +34,9 @@ export const payNowBody = (pay) => (Number(pay.amount) > 0 ? { amount: Number(pa
 // The promised date only matters while part of the total is still unpaid.
 export const promisedBody = (pay, total) => (total - (Number(pay.amount) || 0) > 0 ? pay.promisedDate : '')
 
+// The optional personal details -> what the member API expects. Age is sent only without a date of birth.
+export const personalBody = (p) => ({ address: p.address, dob: p.dob, age: p.dob ? '' : p.age })
+
 export const telLink = (phone) => `tel:${phone}`
 
 export function waLink(phone, countryCode, text) {

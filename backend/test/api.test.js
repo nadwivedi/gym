@@ -264,6 +264,40 @@ test('bad input is rejected', async () => {
   assert.equal((await call('POST', '/payments', { periodId: { $ne: null }, amount: 5, date: today })).status, 400)
 })
 
+test('optional personal details: address, date of birth and age', async () => {
+  const m = { planId: plan(1).id, startDate: today, fee: 100 }
+  // None of them is required.
+  const plain = await ok('POST', '/members', { name: 'Plain Pooja', membership: m })
+  assert.deepEqual([plain.member.address, plain.member.dob, plain.member.age], ['', '', null])
+
+  // With a date of birth the age is worked out, not stored.
+  const dob = `${Number(today.slice(0, 4)) - 25}-01-01`
+  const withDob = await ok('POST', '/members', { name: 'Dob Deepa', address: '12 MG Road\nBhopal', dob, age: '99', notes: 'morning batch', membership: m })
+  assert.deepEqual([withDob.member.address, withDob.member.dob, withDob.member.age, withDob.member.notes], ['12 MG Road\nBhopal', dob, null, 'morning batch'])
+
+  // Only an age: it is kept with the day it was entered.
+  const withAge = await ok('POST', '/members', { name: 'Age Arjun', age: '32', membership: m })
+  assert.deepEqual([withAge.member.dob, withAge.member.age, withAge.member.ageOn], ['', 32, today])
+
+  // Editing: change the address, then replace the typed age with a date of birth, then clear everything.
+  let e = await ok('PATCH', `/members/${withAge.member.id}`, { address: 'New Colony', age: '32' })
+  assert.deepEqual([e.member.address, e.member.age, e.member.ageOn], ['New Colony', 32, today])
+  e = await ok('PATCH', `/members/${withAge.member.id}`, { dob, age: '' })
+  assert.deepEqual([e.member.dob, e.member.age, e.member.ageOn], [dob, null, ''])
+  e = await ok('PATCH', `/members/${withAge.member.id}`, { address: '', dob: '', age: '' })
+  assert.deepEqual([e.member.address, e.member.dob, e.member.age], ['', '', null])
+  // A change that does not mention them leaves them alone.
+  e = await ok('PATCH', `/members/${withDob.member.id}`, { name: 'Dob Deepa K' })
+  assert.deepEqual([e.member.address, e.member.dob], ['12 MG Road\nBhopal', dob])
+
+  for (const bad of [{ dob: addDays(today, 1) }, { dob: '1850-01-01' }, { dob: '2001-02-30' }, { age: '0' }, { age: '150' }, { age: 'abc' }]) {
+    assert.equal((await call('POST', '/members', { name: 'Bad', membership: m, ...bad })).status, 400, JSON.stringify(bad))
+  }
+  const csv = await ok('GET', '/export/members.csv')
+  assert.match(csv, /Date of birth,Age,Address/)
+  assert.match(csv, new RegExp(`Dob Deepa K.*${dob},25,"12 MG Road\\nBhopal"`, 's'))
+})
+
 test('dashboard stats follow payments and refunds', async () => {
   const month = Number(today.slice(5, 7)) - 1
   const before = await ok('GET', '/stats')

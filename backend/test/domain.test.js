@@ -5,11 +5,13 @@ import {
   addMonths,
   diffDays,
   isDate,
+  memberAge,
   memberState,
   overlaps,
   periodMoney,
   periodState,
   renewOptions,
+  yearsBetween,
 } from '../../shared/domain.mjs'
 
 const period = (startDate, renewalDate, extra = {}) => ({ _id: `${startDate}`, startDate, renewalDate, status: 'ok', ...extra })
@@ -25,6 +27,19 @@ test('dates: validation and arithmetic', () => {
   assert.equal(addMonths('2028-01-31', 1), '2028-02-29')
   assert.equal(addMonths('2026-08-31', 6), '2027-02-28')
   assert.equal(addMonths('2026-10-05', 12), '2027-10-05')
+})
+
+test('age: from the date of birth, or from a typed age that moves forward each year', () => {
+  assert.equal(yearsBetween('1998-10-02', '2026-10-02'), 28) // birthday today
+  assert.equal(yearsBetween('1998-10-03', '2026-10-02'), 27) // birthday tomorrow
+  assert.equal(yearsBetween('2000-02-29', '2026-02-28'), 25)
+  assert.equal(memberAge({ dob: '1998-10-03' }, '2026-10-02'), 27)
+  assert.equal(memberAge({ dob: '1998-10-03', age: 99 }, '2026-10-02'), 27) // the date of birth wins
+  assert.equal(memberAge({ age: 30, ageOn: '2026-10-02' }, '2026-10-02'), 30)
+  assert.equal(memberAge({ age: 30, ageOn: '2026-10-02' }, '2027-10-01'), 30)
+  assert.equal(memberAge({ age: 30, ageOn: '2026-10-02' }, '2028-10-05'), 32)
+  assert.equal(memberAge({}, '2026-10-02'), null)
+  assert.equal(memberAge({ age: null, dob: '' }, '2026-10-02'), null)
 })
 
 test('period state: upcoming, active, expired on the renewal date itself', () => {

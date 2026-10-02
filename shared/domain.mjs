@@ -38,6 +38,20 @@ export function addMonths(s, n) {
   return `${first.getUTCFullYear()}-${pad(first.getUTCMonth() + 1)}-${pad(Math.min(d, lastDay))}`
 }
 
+// Full years from one date to another (a birthday today counts).
+export function yearsBetween(from, to) {
+  const years = Number(to.slice(0, 4)) - Number(from.slice(0, 4))
+  return to.slice(5) < from.slice(5) ? years - 1 : years
+}
+
+// A member's age today. From the date of birth when there is one; otherwise from the age the
+// owner typed in, moved forward by the years that have passed since it was entered.
+export function memberAge(member, today) {
+  if (member.dob) return yearsBetween(member.dob, today)
+  if (member.age == null || member.age === '') return null
+  return Number(member.age) + (member.ageOn ? yearsBetween(member.ageOn, today) : 0)
+}
+
 const round2 = (n) => Math.round(n * 100) / 100
 const isLive = (p) => p.status !== 'cancelled'
 

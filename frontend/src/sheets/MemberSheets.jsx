@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { memberAge } from '../../../shared/domain.mjs'
 import { api, saveWithDuplicateCheck, useAction } from '../api.js'
-import { DateInput, PhoneInput } from '../components/fields.jsx'
+import { DateInput, PersonalFields, PhoneInput } from '../components/fields.jsx'
 import { ErrorBox, Field, Sheet } from '../components/ui.jsx'
+import { useApp } from '../context.js'
+import { personalBody } from '../format.js'
 
 const HIDE_REASONS = ['Not coming', 'Joined another gym', 'Moved away', 'Health / injury', 'Will join later']
 
@@ -48,13 +51,14 @@ export function EditMemberSheet({ member, onClose, onDone, onDeleted }) {
   const [gender, setGender] = useState(member.gender || '')
   const [joinDate, setJoinDate] = useState(member.joinDate || '')
   const [notes, setNotes] = useState(member.notes || '')
+  const { today } = useApp()
+  const [personal, setPersonal] = useState({ address: member.address || '', dob: member.dob || '', age: String(memberAge(member, today) ?? '') })
   const { busy, error, run } = useAction()
 
   const submit = async (e) => {
     e.preventDefault()
-    const saved = await run(() =>
-      saveWithDuplicateCheck((force) => api(`/members/${member.id}`, { method: 'PATCH', body: { name, phone, gender, joinDate, notes, force } })),
-    )
+    const body = { name, phone, gender, joinDate, notes, ...personalBody(personal) }
+    const saved = await run(() => saveWithDuplicateCheck((force) => api(`/members/${member.id}`, { method: 'PATCH', body: { ...body, force } })))
     if (saved) onDone(saved)
   }
 
@@ -86,8 +90,9 @@ export function EditMemberSheet({ member, onClose, onDone, onDeleted }) {
             <DateInput value={joinDate} onChange={setJoinDate} required />
           </Field>
         </div>
+        <PersonalFields value={personal} onChange={setPersonal} />
         <Field label="Notes">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} rows={2} />
         </Field>
         <ErrorBox error={error} />
         <button className="btn primary block" disabled={busy}>

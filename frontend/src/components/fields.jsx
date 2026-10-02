@@ -1,3 +1,4 @@
+import { yearsBetween } from '../../../shared/domain.mjs'
 import { useApp } from '../context.js'
 import { money } from '../format.js'
 import { Field } from './ui.jsx'
@@ -24,6 +25,36 @@ export function PhoneInput({ value, onChange, ...rest }) {
       onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
       {...rest}
     />
+  )
+}
+
+// Address, date of birth and age. All optional. value: { address, dob, age }
+// Age fills itself in from the date of birth; without one it can be typed.
+export function PersonalFields({ value, onChange }) {
+  const { today } = useApp()
+  const set = (patch) => onChange({ ...value, ...patch })
+  return (
+    <>
+      <Field label="Full address">
+        <textarea value={value.address} onChange={(e) => set({ address: e.target.value })} maxLength={300} rows={2} />
+      </Field>
+      <div className="field-row">
+        <Field label="Date of birth">
+          <DateInput value={value.dob} max={today} min="1900-01-01" onChange={(dob) => set({ dob, age: dob ? String(Math.max(yearsBetween(dob, today), 0)) : '' })} />
+        </Field>
+        <Field label="Age">
+          <input
+            type="number"
+            inputMode="numeric"
+            min="1"
+            max="120"
+            value={value.age}
+            readOnly={!!value.dob}
+            onChange={(e) => set({ age: e.target.value.replace(/\D/g, '').slice(0, 3) })}
+          />
+        </Field>
+      </div>
+    </>
   )
 }
 

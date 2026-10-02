@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { memberAge } from '../../../shared/domain.mjs'
 import { api, useAction, useLoad } from '../api.js'
 import { Avatar, Badge, ContactButtons, ErrorBox, Icon, Loading } from '../components/ui.jsx'
+import { useApp } from '../context.js'
 import { dueInfo, fmtDate, money } from '../format.js'
 import { EditMemberSheet, HideSheet } from '../sheets/MemberSheets.jsx'
 import PaymentEditSheet from '../sheets/PaymentEditSheet.jsx'
@@ -23,6 +25,7 @@ export default function MemberProfile() {
   const { data, error, reload } = useLoad(`/members/${id}`)
   const [sheet, setSheet] = useState(null) // { type, period?, payment? }
   const action = useAction()
+  const { today } = useApp()
 
   const back = (
     <button className="btn small" onClick={() => navigate(-1)} aria-label="Back">
@@ -42,6 +45,7 @@ export default function MemberProfile() {
 
   const { member, summary: s, periods, payments } = data
   const due = dueInfo(s)
+  const age = memberAge(member, today)
   const noMembership = s.status === 'none'
   const close = () => setSheet(null)
   const done = () => {
@@ -101,6 +105,24 @@ export default function MemberProfile() {
             <div className="box warn">
               Hidden from renewals on {fmtDate(member.hiddenAt)}
               {member.hiddenReason ? `: ${member.hiddenReason}` : ''}
+            </div>
+          )}
+          {member.dob && (
+            <div className="kv">
+              <span>Date of birth</span>
+              <span>{fmtDate(member.dob)}</span>
+            </div>
+          )}
+          {age != null && (
+            <div className="kv">
+              <span>Age</span>
+              <span>{age} years</span>
+            </div>
+          )}
+          {member.address && (
+            <div className="kv">
+              <span>Address</span>
+              <span className="multiline">{member.address}</span>
             </div>
           )}
           {member.notes && <p className="row-sub">{member.notes}</p>}

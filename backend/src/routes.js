@@ -1,5 +1,5 @@
 import express from 'express'
-import { PAYMENT_MODES, addMonths, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
+import { PAYMENT_MODES, addMonths, memberAge, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
 import { checkPin, hashPin, makeToken, newSecret, verifyToken } from './auth.js'
 import { toCsv } from './csv.js'
 import { Expense, ExpenseCategory, Member, Payment, Period, Plan, getSettings, logEntry, nextMemberNo, out } from './db.js'
@@ -47,6 +47,31 @@ async function checkDuplicatePhone(phone, force, exceptId) {
   if (!phone || force) return
   const dup = await Member.findOne({ phone, _id: { $ne: exceptId } }).lean()
   if (dup) fail(409, `${dup.name} already has this phone number`, { code: 'DUPLICATE', memberId: String(dup._id) })
+}
+
+// Optional personal details of a member: address, date of birth, age.
+// `current` is the member being edited (absent for a new admission).
+function personalFields(b, current) {
+  const today = todayStr()
+  const f = {}
+  if (b.address !== undefined) f.address = str(b.address, 300)
+  if (b.dob === undefined && b.age === undefined) return f
+  const dob = b.dob ? dateOf(b.dob, 'Date of birth') : ''
+  if (dob && (dob > today || dob < '1900-01-01')) fail(400, 'Date of birth is not valid')
+  f.dob = dob
+  if (dob || b.age === '' || b.age == null) {
+    // With a date of birth the age is worked out, never stored.
+    f.age = null
+    f.ageOn = ''
+  } else {
+    const age = intOf(b.age, 'Age', 1, 120)
+    // Saving the form again without touching the age must not restart its clock.
+    if (!current || current.dob || memberAge(current, today) !== age) {
+      f.age = age
+      f.ageOn = today
+    }
+  }
+  return f
 }
 
 const loadCategories = () => ExpenseCategory.find().sort({ order: 1, createdAt: 1 }).lean()
@@ -298,6 +323,7 @@ export function api() {
       gender: str(b.gender, 20),
       notes: str(b.notes, 500),
       joinDate: b.joinDate ? dateOf(b.joinDate, 'Join date') : periodData.startDate,
+      ...personalFields(b),
     })
     try {
       const period = await Period.create({ ...periodData, memberId: member._id })
@@ -326,6 +352,7 @@ export function api() {
     if (b.gender !== undefined) member.gender = str(b.gender, 20)
     if (b.notes !== undefined) member.notes = str(b.notes, 500)
     if (b.joinDate !== undefined) member.joinDate = dateOf(b.joinDate, 'Join date')
+    member.set(personalFields(b, member))
     await member.save()
     res.json(await memberDetail(member._id, todayStr()))
   })
@@ -665,11 +692,17 @@ export function api() {
   // ---- Backup ----
 
   r.get('/export/members.csv', async (req, res) => {
-    const rows = (await loadSummaries(todayStr())).sort((a, b) => a.memberNo - b.memberNo)
+    const today = todayStr()
+    const [summaries, members] = await Promise.all([loadSummaries(today), Member.find({}, { address: 1, dob: 1, age: 1, ageOn: 1 }).lean()])
+    const personal = new Map(members.map((m) => [String(m._id), m]))
+    const rows = summaries.sort((a, b) => a.memberNo - b.memberNo)
     res.type('text/csv').send(
       toCsv(
-        ['No', 'Name', 'Phone', 'Status', 'Plan', 'Renewal date', 'Balance due', 'Joined', 'Hidden', 'Hidden reason'],
-        rows.map((s) => [s.memberNo, s.name, s.phone, s.status, s.planName, s.renewalDate, s.balance, s.joinDate, s.hidden ? 'yes' : '', s.hiddenReason]),
+        ['No', 'Name', 'Phone', 'Status', 'Plan', 'Renewal date', 'Balance due', 'Joined', 'Hidden', 'Hidden reason', 'Date of birth', 'Age', 'Address'],
+        rows.map((s) => {
+          const m = personal.get(s.id) || {}
+          return [s.memberNo, s.name, s.phone, s.status, s.planName, s.renewalDate, s.balance, s.joinDate, s.hidden ? 'yes' : '', s.hiddenReason, m.dob, memberAge(m, today), m.address]
+        }),
       ),
     )
   })

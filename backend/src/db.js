@@ -15,6 +15,12 @@ export const Member = model(
       gender: { type: String, default: '' },
       joinDate: String,
       notes: { type: String, default: '' },
+      // Optional personal details. `age` is kept only when there is no date of birth,
+      // together with the day it was entered so it can be moved forward each year.
+      address: { type: String, default: '' },
+      dob: { type: String, default: '' },
+      age: { type: Number, default: null },
+      ageOn: { type: String, default: '' },
       hidden: { type: Boolean, default: false },
       hiddenReason: { type: String, default: '' },
       hiddenAt: { type: String, default: '' },
