@@ -20,6 +20,7 @@ export default function More({ onLock }) {
       </header>
       <div className="page">
         <Plans />
+        <ExpenseCategories />
 
         <div className="section-title">Settings</div>
         <Settings />
@@ -32,6 +33,9 @@ export default function More({ onLock }) {
           </button>
           <button className="btn block" disabled={exp.busy} onClick={() => get('/export/payments.csv', `payments-${today}.csv`)}>
             Payments (Excel / CSV)
+          </button>
+          <button className="btn block" disabled={exp.busy} onClick={() => get('/export/expenses.csv', `expenses-${today}.csv`)}>
+            Expenses (Excel / CSV)
           </button>
           <button className="btn block" disabled={exp.busy} onClick={() => get('/export/backup.json', `gym-backup-${today}.json`)}>
             Full backup file
@@ -46,6 +50,76 @@ export default function More({ onLock }) {
         </button>
       </div>
     </>
+  )
+}
+
+// Expense categories: the five defaults plus any the owner adds. Tap one to rename it or switch it off.
+function ExpenseCategories() {
+  const { expenseCategories, reloadApp } = useApp()
+  const [editing, setEditing] = useState(null) // a category, or 'new'
+  const saved = () => {
+    setEditing(null)
+    reloadApp()
+  }
+  return (
+    <>
+      <div className="section-title">
+        Expense categories
+        <button className="btn small primary" onClick={() => setEditing('new')}>
+          + Add category
+        </button>
+      </div>
+      <div className="card chips wrap pad">
+        {expenseCategories.map((c) => (
+          <button key={c.id} className={`chip ${c.active ? '' : 'off'}`} onClick={() => setEditing(c)} aria-label={`Edit category ${c.name}`}>
+            {c.name}
+            {!c.active && <small>off</small>}
+          </button>
+        ))}
+      </div>
+      {editing && <CategorySheet category={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={saved} />}
+    </>
+  )
+}
+
+function CategorySheet({ category, onClose, onSaved }) {
+  const [name, setName] = useState(category?.name || '')
+  const [active, setActive] = useState(category?.active ?? true)
+  const { busy, error, run } = useAction()
+
+  const save = async (e) => {
+    e.preventDefault()
+    const saved = await run(() =>
+      category ? api(`/expense-categories/${category.id}`, { method: 'PATCH', body: { name, active } }) : api('/expense-categories', { method: 'POST', body: { name } }),
+    )
+    if (saved) onSaved()
+  }
+
+  return (
+    <Sheet title={category ? `Edit ${category.name}` : 'New expense category'} onClose={onClose}>
+      <form className="form" onSubmit={save}>
+        <Field label="Category name">
+          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} placeholder="e.g. Rent" autoFocus={!category} />
+        </Field>
+        {category && (
+          <Group label="Use this category">
+            <div className="btn-grid">
+              <button type="button" className={`chip ${active ? 'active' : ''}`} aria-pressed={active} onClick={() => setActive(true)}>
+                On
+              </button>
+              <button type="button" className={`chip ${active ? '' : 'active'}`} aria-pressed={!active} onClick={() => setActive(false)}>
+                Off
+              </button>
+            </div>
+            {!active && <p className="hint">Off: not offered when adding an expense. Old expenses keep it.</p>}
+          </Group>
+        )}
+        <ErrorBox error={error} />
+        <button className="btn primary block" disabled={busy}>
+          {busy ? 'Saving…' : category ? 'Save category' : 'Add category'}
+        </button>
+      </form>
+    </Sheet>
   )
 }
 

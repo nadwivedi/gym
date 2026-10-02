@@ -4,6 +4,7 @@ import { getToken, setToken, useLoad } from './api.js'
 import { Icon, Loading } from './components/ui.jsx'
 import { AppContext } from './context.js'
 import Dashboard from './pages/Dashboard.jsx'
+import Expenses from './pages/Expenses.jsx'
 import Login from './pages/Login.jsx'
 import MemberProfile from './pages/MemberProfile.jsx'
 import Members from './pages/Members.jsx'
@@ -61,6 +62,7 @@ function Shell({ onLock }) {
             <Route path="/members" element={<Members />} />
             <Route path="/members/:id" element={<MemberProfile />} />
             <Route path="/payments" element={<Payments />} />
+            <Route path="/expenses" element={<Expenses />} />
             <Route path="/more" element={<More onLock={onLock} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -75,11 +77,6 @@ function Shell({ onLock }) {
               <Icon name="calendar" />
               Renewals
             </NavLink>
-            <button className="add" aria-label="New admission" onClick={openAdd}>
-              <span className="plus">
-                <Icon name="plus" />
-              </span>
-            </button>
             <NavLink to="/members">
               <Icon name="users" />
               Members
@@ -87,6 +84,10 @@ function Shell({ onLock }) {
             <NavLink to="/payments">
               <Icon name="wallet" />
               Payments
+            </NavLink>
+            <NavLink to="/expenses">
+              <Icon name="receipt" />
+              Expenses
             </NavLink>
           </div>
         </nav>

@@ -4,7 +4,7 @@ import { after, before, test } from 'node:test'
 import mongoose from 'mongoose'
 import { addDays, addMonths, todayStr } from '../../shared/domain.mjs'
 import { createApp } from '../src/app.js'
-import { seedPlans } from '../src/db.js'
+import { seedDefaults } from '../src/db.js'
 
 const TEST_DB = process.env.MONGO_TEST_URL || 'mongodb://127.0.0.1:27017/gymsoft_test'
 const today = todayStr()
@@ -43,7 +43,7 @@ async function admit(name, { months = 1, startDate = today, fee = 1000, admissio
 before(async () => {
   await mongoose.connect(TEST_DB)
   await mongoose.connection.dropDatabase()
-  await seedPlans()
+  await seedDefaults()
   server = createApp().listen(0)
   base = `http://127.0.0.1:${server.address().port}/api`
 })
@@ -290,6 +290,68 @@ test('dashboard stats follow payments and refunds', async () => {
   const lastYear = await ok('GET', `/stats?year=${before.year - 1}`)
   assert.equal(lastYear.total.collected, 0)
   assert.equal((await call('GET', '/stats?year=abc')).status, 400)
+})
+
+test('expenses: default categories, add, edit, delete, and the dashboard profit', async () => {
+  const month = Number(today.slice(5, 7)) - 1
+  const boot = await ok('GET', '/bootstrap')
+  assert.deepEqual(
+    boot.expenseCategories.map((c) => c.name),
+    ['Electricity', 'Cleaning', 'Maintenance', 'Repair', 'Other'],
+  )
+  const cat = (name) => boot.expenseCategories.find((c) => c.name === name).id
+
+  // A new category; the same name again (any letter case) is refused.
+  const rent = await ok('POST', '/expense-categories', { name: 'Rent' })
+  assert.equal((await call('POST', '/expense-categories', { name: 'rent' })).status, 409)
+  assert.equal((await call('POST', '/expense-categories', { name: ' ' })).status, 400)
+  assert.equal((await ok('GET', '/bootstrap')).expenseCategories.at(-1).name, 'Rent')
+
+  const before = await ok('GET', '/stats')
+  const e1 = await ok('POST', '/expenses', { amount: 1500, date: today, categoryId: cat('Electricity'), mode: 'UPI', note: 'October bill' })
+  await ok('POST', '/expenses', { amount: 8000, date: today, categoryId: rent.id })
+  const e3 = await ok('POST', '/expenses', { amount: 250, date: today, categoryId: cat('Cleaning') })
+
+  let list = await ok('GET', `/expenses?month=${today.slice(0, 7)}`)
+  assert.equal(list.total, 9750)
+  assert.deepEqual(
+    list.byCategory.map((c) => [c.name, c.total]),
+    [['Rent', 8000], ['Electricity', 1500], ['Cleaning', 250]],
+  )
+  assert.equal(list.items.length, 3)
+  assert.equal(list.items.find((e) => e.id === e1.id).category, 'Electricity')
+
+  let after = await ok('GET', '/stats')
+  assert.equal(after.months[month].expense - before.months[month].expense, 9750)
+  assert.equal(after.months[month].profit, after.months[month].net - after.months[month].expense)
+  assert.equal(before.months[month].profit - after.months[month].profit, 9750)
+  assert.equal(after.months[month].byCategory.Rent, 8000)
+  assert.equal(after.total.expense - before.total.expense, 9750)
+
+  // Fix the amount, delete a wrong entry, rename and switch off a category.
+  await ok('PATCH', `/expenses/${e1.id}`, { amount: 1800, categoryId: cat('Repair') })
+  await ok('DELETE', `/expenses/${e3.id}`)
+  await ok('PATCH', `/expense-categories/${rent.id}`, { name: 'Building rent', active: false })
+  list = await ok('GET', `/expenses?month=${today.slice(0, 7)}`)
+  assert.equal(list.total, 9800)
+  assert.deepEqual(
+    list.byCategory.map((c) => [c.name, c.total]),
+    [['Building rent', 8000], ['Repair', 1800]],
+  )
+  after = await ok('GET', '/stats')
+  assert.equal(after.months[month].expense - before.months[month].expense, 9800)
+  assert.equal((await ok('GET', '/bootstrap')).expenseCategories.at(-1).active, false)
+
+  // Bad input.
+  const base = { amount: 100, date: today, categoryId: cat('Other') }
+  assert.equal((await call('POST', '/expenses', { ...base, amount: 0 })).status, 400)
+  assert.equal((await call('POST', '/expenses', { ...base, date: addDays(today, 1) })).status, 400)
+  assert.equal((await call('POST', '/expenses', { ...base, categoryId: undefined })).status, 400)
+  assert.equal((await call('POST', '/expenses', { ...base, categoryId: e1.id })).status, 400) // not a category
+  assert.equal((await call('GET', '/expenses?month=2026-13')).status, 400)
+  assert.equal((await call('GET', '/expenses')).status, 400)
+  assert.equal((await call('DELETE', `/expenses/${e3.id}`)).status, 404)
+  assert.match(await ok('GET', '/export/expenses.csv'), /Date,Category,Amount/)
 })
 
 test('exports and settings', async () => {

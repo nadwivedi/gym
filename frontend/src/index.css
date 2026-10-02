@@ -36,6 +36,12 @@
   --chart-accent: #2563eb;
   --chart-mute: #9db5e8;
   --chart-mute-hover: #7d9be0;
+  /* Fixed colour per series, checked for colour-blind separation: income blue, expenses orange. */
+  --series-income: #2563eb;
+  --series-expense: #ea580c;
+  --profit-accent: #7c3aed;
+  --profit-mute: #c4b5fd;
+  --profit-mute-hover: #a78bfa;
 
   --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
   --shadow: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06);
@@ -87,6 +93,11 @@
     --chart-accent: #6ea0ff;
     --chart-mute: #3b4f78;
     --chart-mute-hover: #4d669a;
+    --series-income: #5b8def;
+    --series-expense: #d96a1f;
+    --profit-accent: #a78bfa;
+    --profit-mute: #4c3f7a;
+    --profit-mute-hover: #5f5096;
 
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow: 0 4px 8px -2px rgb(0 0 0 / 0.5);
@@ -267,19 +278,6 @@ input[type='number'] {
   height: 3px;
   border-radius: 0 0 4px 4px;
   background: var(--grad-brand);
-}
-
-.nav .add span.plus {
-  width: 50px;
-  height: 50px;
-  margin-top: -22px;
-  border-radius: 50%;
-  border: 4px solid var(--surface);
-  background: var(--grad-brand);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  box-shadow: var(--shadow-brand);
 }
 
 .nav svg,
@@ -526,6 +524,15 @@ button.card {
 
 .stat.green .stat-icon {
   background: linear-gradient(135deg, #22c55e, #0d9488);
+}
+
+.stat.red {
+  border-color: var(--danger-ring);
+  background: linear-gradient(90deg, var(--danger-soft), var(--surface));
+}
+
+.stat.red .stat-icon {
+  background: linear-gradient(135deg, #f43f5e, #dc2626);
 }
 
 .stat.purple {
@@ -800,6 +807,238 @@ button.stat {
 .table tfoot td {
   font-weight: 700;
   border-top: 2px solid var(--border-strong);
+}
+
+.table td.loss {
+  color: var(--danger);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+@media (max-width: 400px) {
+  .table {
+    font-size: 0.74rem;
+  }
+
+  .table th,
+  .table td {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+
+@media (max-width: 345px) {
+  .hide-narrow {
+    display: none;
+  }
+}
+
+/* Income / expenses / profit: three boxes in one row. */
+.tri {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tri-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 10px 9px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--series-income);
+  background: var(--surface-2);
+}
+
+.tri-box.expense {
+  border-top-color: var(--series-expense);
+}
+
+.tri-box.profit {
+  border-top-color: var(--profit-accent);
+}
+
+.tri-box span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tri-box b {
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.tri-box small {
+  font-size: 0.66rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.year-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-strong);
+  background: none;
+  font-size: 0.76rem;
+  text-align: left;
+}
+
+.year-strip span {
+  color: var(--muted);
+}
+
+.year-strip b {
+  font-weight: 600;
+}
+
+/* Chart series colours and their legend / tooltip keys. */
+.series.income,
+.swatch.income,
+.key.income {
+  fill: var(--series-income);
+  background: var(--series-income);
+}
+
+.series.expense,
+.swatch.expense,
+.key.expense {
+  fill: var(--series-expense);
+  background: var(--series-expense);
+}
+
+.chart.profit {
+  --chart-accent: var(--profit-accent);
+  --chart-mute: var(--profit-mute);
+  --chart-mute-hover: var(--profit-mute-hover);
+}
+
+.share.expense {
+  --chart-accent: var(--series-expense);
+}
+
+/* Category names are longer than payment modes. */
+.share.wide .share-row {
+  grid-template-columns: 92px 1fr auto;
+}
+
+.share.wide .share-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend {
+  display: flex;
+  gap: 14px;
+  margin: 2px 0 2px 44px;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.chart-band {
+  fill: var(--surface-2);
+}
+
+.chart-tick.on {
+  fill: var(--text);
+  font-weight: 700;
+}
+
+.tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.tip-row b {
+  font-size: 0.8rem;
+}
+
+.key {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.key.none {
+  background: none;
+}
+
+/* Expense rows and the category manager. */
+.avatar.expense {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+}
+
+.avatar.expense .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.card.row {
+  align-items: center;
+}
+
+.stepper.wide {
+  flex: 1;
+  justify-content: space-between;
+}
+
+.chip.dashed {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  box-shadow: none;
+}
+
+.chip.off {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.chip small {
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.card.chips.pad {
+  padding: 12px;
+}
+
+.filters .btn {
+  white-space: nowrap;
+}
+
+.stepper.wide b {
+  white-space: nowrap;
 }
 
 .money-grid.first {

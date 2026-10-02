@@ -72,6 +72,28 @@ export const Plan = model(
   new Schema({ name: String, months: Number, price: { type: Number, default: 0 }, active: { type: Boolean, default: true } }, opts),
 )
 
+export const ExpenseCategory = model(
+  'ExpenseCategory',
+  new Schema({ name: { type: String, required: true }, order: { type: Number, default: 0 }, active: { type: Boolean, default: true } }, opts),
+)
+
+// Money the gym spends: rent, electricity, repairs and so on.
+export const Expense = model(
+  'Expense',
+  new Schema(
+    {
+      categoryId: { type: Schema.Types.ObjectId, required: true, index: true },
+      amount: { type: Number, required: true },
+      date: { type: String, required: true, index: true },
+      mode: { type: String, default: 'Cash' },
+      note: { type: String, default: '' },
+    },
+    opts,
+  ),
+)
+
+export const DEFAULT_EXPENSE_CATEGORIES = ['Electricity', 'Cleaning', 'Maintenance', 'Repair', 'Other']
+
 const Settings = model(
   'Settings',
   new Schema(
@@ -104,9 +126,14 @@ export async function nextMemberNo() {
   return c.seq
 }
 
-export async function seedPlans() {
-  if (await Plan.countDocuments()) return
-  await Plan.insertMany([1, 3, 6, 12].map((m) => ({ name: m === 1 ? '1 Month' : `${m} Months`, months: m, price: 0 })))
+// First run: the standard plans and expense categories. Each list is filled only while it is empty.
+export async function seedDefaults() {
+  if (!(await Plan.countDocuments())) {
+    await Plan.insertMany([1, 3, 6, 12].map((m) => ({ name: m === 1 ? '1 Month' : `${m} Months`, months: m, price: 0 })))
+  }
+  if (!(await ExpenseCategory.countDocuments())) {
+    await ExpenseCategory.insertMany(DEFAULT_EXPENSE_CATEGORIES.map((name, order) => ({ name, order })))
+  }
 }
 
 export const logEntry = (text) => ({ at: new Date().toISOString(), text })

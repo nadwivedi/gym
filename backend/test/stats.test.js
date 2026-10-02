@@ -43,6 +43,23 @@ test('year stats: admissions, renewals and active members at each month end', ()
   assert.deepEqual([total.admissions, total.renewals], [4, 1])
 })
 
+test('year stats: expenses by category and profit, including a loss month', () => {
+  const expense = (date, amount, category) => ({ date, amount, category })
+  const { months, total } = buildYearStats({
+    year: 2026,
+    today: '2026-10-02',
+    payments: [pay('2026-01-05', 5000), pay('2026-02-10', 1000), pay('2026-02-12', 200, 'Cash', 'refund')],
+    periods: [],
+    expenses: [expense('2026-01-03', 1200.5, 'Electricity'), expense('2026-01-20', 800, 'Cleaning'), expense('2026-01-25', 300, 'Electricity'), expense('2026-02-01', 2500, 'Repair')],
+  })
+  assert.deepEqual([months[0].net, months[0].expense, months[0].profit, months[0].expenseCount], [5000, 2300.5, 2699.5, 3])
+  assert.deepEqual(months[0].byCategory, { Electricity: 1500.5, Cleaning: 800 })
+  assert.deepEqual([months[1].net, months[1].expense, months[1].profit], [800, 2500, -1700]) // spent more than earned
+  assert.deepEqual([months[2].expense, months[2].profit], [0, 0])
+  assert.deepEqual([total.net, total.expense, total.profit, total.expenseCount], [5800, 4800.5, 999.5, 4])
+  assert.deepEqual(total.byCategory, { Electricity: 1500.5, Cleaning: 800, Repair: 2500 })
+})
+
 test('year stats: a past year is filled for all twelve months', () => {
   const { months } = buildYearStats({ year: 2025, today: '2026-10-02', payments: [], periods: [period('c', '2025-12-15', '2026-12-15')] })
   assert.equal(months[10].active, 0)

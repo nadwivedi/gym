@@ -2,7 +2,7 @@ import express from 'express'
 import { PAYMENT_MODES, addMonths, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
 import { checkPin, hashPin, makeToken, newSecret, verifyToken } from './auth.js'
 import { toCsv } from './csv.js'
-import { Member, Payment, Period, Plan, getSettings, logEntry, nextMemberNo, out } from './db.js'
+import { Expense, ExpenseCategory, Member, Payment, Period, Plan, getSettings, logEntry, nextMemberNo, out } from './db.js'
 import { loadSummaries, memberDetail, moneyFor } from './service.js'
 import { buildYearStats } from './stats.js'
 import { dateOf, fail, idOf, intOf, moneyOf, phoneOf, str } from './validate.js'
@@ -46,6 +46,36 @@ async function checkDuplicatePhone(phone, force, exceptId) {
   if (!phone || force) return
   const dup = await Member.findOne({ phone, _id: { $ne: exceptId } }).lean()
   if (dup) fail(409, `${dup.name} already has this phone number`, { code: 'DUPLICATE', memberId: String(dup._id) })
+}
+
+const loadCategories = () => ExpenseCategory.find().sort({ order: 1, createdAt: 1 }).lean()
+
+async function getExpense(id) {
+  return (await Expense.findById(idOf(id))) || fail(404, 'Expense not found')
+}
+
+async function categoryNameOf(v, exceptId) {
+  const name = str(v, 40) || fail(400, 'Category name is required')
+  const all = await ExpenseCategory.find({ _id: { $ne: exceptId } }, { name: 1 }).lean()
+  if (all.some((c) => c.name.toLowerCase() === name.toLowerCase())) fail(409, `There is already a category called ${name}`)
+  return name
+}
+
+// Fields of an expense that the request sets; every field is required when creating.
+async function expenseFields(b, creating) {
+  const f = {}
+  if (creating || b.amount !== undefined) {
+    f.amount = moneyOf(b.amount, 'Amount')
+    if (f.amount <= 0) fail(400, 'Enter the amount')
+  }
+  if (creating || b.date !== undefined) f.date = paidDateOf(b.date, 'Expense date')
+  if (creating || b.categoryId !== undefined) {
+    const category = (await ExpenseCategory.findById(idOf(b.categoryId)).lean()) || fail(400, 'Choose a category')
+    f.categoryId = category._id
+  }
+  if (b.mode !== undefined) f.mode = modeOf(b.mode)
+  if (b.note !== undefined) f.note = str(b.note, 300)
+  return f
 }
 
 // Validates an admission / renewal and returns the fields to store.
@@ -139,8 +169,14 @@ export function api() {
   })
 
   r.get('/bootstrap', async (req, res) => {
-    const plans = await Plan.find().sort({ months: 1, name: 1 }).lean()
-    res.json({ today: todayStr(), settings: publicSettings(req.settings), plans: plans.map(out), modes: PAYMENT_MODES })
+    const [plans, expenseCategories] = await Promise.all([Plan.find().sort({ months: 1, name: 1 }).lean(), loadCategories()])
+    res.json({
+      today: todayStr(),
+      settings: publicSettings(req.settings),
+      plans: plans.map(out),
+      expenseCategories: expenseCategories.map(out),
+      modes: PAYMENT_MODES,
+    })
   })
 
   r.patch('/settings', async (req, res) => {
@@ -210,19 +246,25 @@ export function api() {
     const today = todayStr()
     const thisYear = Number(today.slice(0, 4))
     const year = req.query.year === undefined ? thisYear : intOf(req.query.year, 'Year', 2000, 2100)
-    const [payments, periods, rows, firstPayment, firstPeriod] = await Promise.all([
-      Payment.find({ voided: { $ne: true }, date: { $gte: `${year}-01-01`, $lt: `${year + 1}-01-01` } }).lean(),
+    const inYear = { $gte: `${year}-01-01`, $lt: `${year + 1}-01-01` }
+    const [payments, expenses, categories, firstExpense, periods, rows, firstPayment, firstPeriod] = await Promise.all([
+      Payment.find({ voided: { $ne: true }, date: inYear }).lean(),
+      Expense.find({ date: inYear }).lean(),
+      loadCategories(),
+      Expense.findOne().sort({ date: 1 }).lean(),
       Period.find({ status: { $ne: 'cancelled' } }, { memberId: 1, startDate: 1, renewalDate: 1, kind: 1 }).lean(),
       loadSummaries(today),
       Payment.findOne({ voided: { $ne: true } }).sort({ date: 1 }).lean(),
       Period.findOne({ status: { $ne: 'cancelled' } }).sort({ startDate: 1 }).lean(),
     ])
-    const stats = buildYearStats({ year, today, payments, periods })
+    const names = new Map(categories.map((c) => [String(c._id), c.name]))
+    for (const e of expenses) e.category = names.get(String(e.categoryId)) || 'Other'
+    const stats = buildYearStats({ year, today, payments, periods, expenses })
     const active = rows.filter((s) => s.status === 'active' && !s.hidden).length
     // The current month shows the same count as the "active members" tile.
     if (year === thisYear) stats.months[Number(today.slice(5, 7)) - 1].active = active
     const dues = rows.filter((s) => s.balance > 0)
-    const firstYear = Math.min(thisYear, ...[firstPayment?.date, firstPeriod?.startDate].filter(Boolean).map((d) => Number(d.slice(0, 4))))
+    const firstYear = Math.min(thisYear, ...[firstPayment?.date, firstPeriod?.startDate, firstExpense?.date].filter(Boolean).map((d) => Number(d.slice(0, 4))))
     res.json({
       year,
       today,
@@ -563,6 +605,62 @@ export function api() {
     res.json(await memberDetail(pay.memberId, todayStr()))
   })
 
+  // ---- Expenses ----
+
+  // One month of expenses, newest first, with a total per category.
+  r.get('/expenses', async (req, res) => {
+    const month = typeof req.query.month === 'string' && /^\d{4}-\d{2}$/.test(req.query.month) ? req.query.month : ''
+    const from = dateOf(`${month}-01`, 'Month')
+    const [items, categories] = await Promise.all([
+      Expense.find({ date: { $gte: from, $lt: addMonths(from, 1) } }).sort({ date: -1, createdAt: -1 }).lean(),
+      loadCategories(),
+    ])
+    const names = new Map(categories.map((c) => [String(c._id), c.name]))
+    const totals = new Map()
+    for (const e of items) totals.set(String(e.categoryId), (totals.get(String(e.categoryId)) || 0) + e.amount)
+    const round = (n) => Math.round(n * 100) / 100
+    res.json({
+      month,
+      total: round(items.reduce((sum, e) => sum + e.amount, 0)),
+      byCategory: [...totals].map(([id, total]) => ({ id, name: names.get(id) || 'Other', total: round(total) })).sort((a, b) => b.total - a.total),
+      items: items.map((e) => ({ ...out(e), category: names.get(String(e.categoryId)) || 'Other' })),
+    })
+  })
+
+  r.post('/expenses', async (req, res) => {
+    const expense = await Expense.create(await expenseFields(req.body || {}, true))
+    res.status(201).json(out(expense))
+  })
+
+  r.patch('/expenses/:id', async (req, res) => {
+    const expense = await getExpense(req.params.id)
+    expense.set(await expenseFields(req.body || {}, false))
+    await expense.save()
+    res.json(out(expense))
+  })
+
+  r.delete('/expenses/:id', async (req, res) => {
+    await (await getExpense(req.params.id)).deleteOne()
+    res.json({ ok: true })
+  })
+
+  r.post('/expense-categories', async (req, res) => {
+    const name = await categoryNameOf(req.body?.name)
+    const last = await ExpenseCategory.findOne().sort({ order: -1 }).lean()
+    const category = await ExpenseCategory.create({ name, order: (last?.order ?? -1) + 1 })
+    res.status(201).json(out(category))
+  })
+
+  // Rename a category or switch it off. Categories are never deleted, so old expenses keep their name.
+  r.patch('/expense-categories/:id', async (req, res) => {
+    const category = (await ExpenseCategory.findById(idOf(req.params.id))) || fail(404, 'Category not found')
+    const b = req.body || {}
+    if (b.name !== undefined) category.name = await categoryNameOf(b.name, category._id)
+    if (b.active !== undefined) category.active = !!b.active
+    await category.save()
+    res.json(out(category))
+  })
+
   // ---- Backup ----
 
   r.get('/export/members.csv', async (req, res) => {
@@ -589,14 +687,36 @@ export function api() {
     )
   })
 
+  r.get('/export/expenses.csv', async (req, res) => {
+    const [expenses, categories] = await Promise.all([Expense.find().sort({ date: 1, createdAt: 1 }).lean(), loadCategories()])
+    const names = new Map(categories.map((c) => [String(c._id), c.name]))
+    res.type('text/csv').send(
+      toCsv(
+        ['Date', 'Category', 'Amount', 'Mode', 'Note'],
+        expenses.map((e) => [e.date, names.get(String(e.categoryId)) || 'Other', e.amount, e.mode, e.note]),
+      ),
+    )
+  })
+
   r.get('/export/backup.json', async (req, res) => {
-    const [members, periods, payments, plans] = await Promise.all([
+    const [members, periods, payments, plans, expenses, expenseCategories] = await Promise.all([
       Member.find().lean(),
       Period.find().lean(),
       Payment.find().lean(),
       Plan.find().lean(),
+      Expense.find().lean(),
+      ExpenseCategory.find().lean(),
     ])
-    res.json({ exportedAt: new Date().toISOString(), settings: publicSettings(req.settings), members, periods, payments, plans })
+    res.json({
+      exportedAt: new Date().toISOString(),
+      settings: publicSettings(req.settings),
+      members,
+      periods,
+      payments,
+      plans,
+      expenses,
+      expenseCategories,
+    })
   })
 
   r.use((req, res) => res.status(404).json({ error: 'Not found' }))

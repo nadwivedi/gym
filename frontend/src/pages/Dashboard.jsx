@@ -1,20 +1,28 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLoad } from '../api.js'
-import { ColumnChart, ShareBars, TrendChart } from '../components/charts.jsx'
+import { ColumnChart, GroupedChart, ShareBars, TrendChart } from '../components/charts.jsx'
 import { Icon, Loading } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 import { MONTHS, MONTH_NAMES, fmtDate, money, moneyShort } from '../format.js'
+import ExpenseSheet from '../sheets/ExpenseSheet.jsx'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+const SERIES = [
+  { label: 'Income', tone: 'income' },
+  { label: 'Expenses', tone: 'expense' },
+]
 
 export default function Dashboard() {
   const { settings, today, modes } = useApp()
   const thisYear = Number(today.slice(0, 4))
+  const thisMonth = Number(today.slice(5, 7))
   const [year, setYear] = useState(thisYear)
   // 0 = the whole year, 1-12 = one month.
-  const [month, setMonth] = useState(Number(today.slice(5, 7)))
-  const { data, error, loading } = useLoad(`/stats?year=${year}`)
+  const [month, setMonth] = useState(thisMonth)
+  const [adding, setAdding] = useState(false)
+  const { data, error, loading, reload } = useLoad(`/stats?year=${year}`)
   // While another year loads, keep the last one on screen instead of flashing a spinner.
   const [shown, setShown] = useState(null)
   if (data && data !== shown) setShown(data)
@@ -45,14 +53,14 @@ export default function Dashboard() {
   const pickYear = (y) => {
     setYear(y)
     // A past year opens on the whole year; this year opens on the current month.
-    setMonth(y === thisYear ? Number(today.slice(5, 7)) : 0)
+    setMonth(y === thisYear ? thisMonth : 0)
   }
   const scope = month ? stats.months[month - 1] : stats.total
-  // The month tile follows the selected month; on "Full year" it shows the latest month of that year.
-  const tileMonth = stats.months[(month || (stats.year === thisYear ? Number(today.slice(5, 7)) : 12)) - 1]
   const scopeName = month ? `${MONTH_NAMES[month - 1]} ${stats.year}` : `Full year ${stats.year}`
   const future = (m) => `${stats.year}-${String(m.month).padStart(2, '0')}-01` > stats.today
-  const modeRows = modes.map((m) => ({ label: m, value: scope.byMode[m] || 0 }))
+  const categoryRows = Object.entries(scope.byCategory)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
 
   return (
     <>
@@ -79,7 +87,7 @@ export default function Dashboard() {
         </div>
 
         <div className="stat-grid">
-          <Link to="/members" className="stat">
+          <Link to="/members" className="stat green">
             <span className="stat-icon">
               <Icon name="users" />
             </span>
@@ -89,7 +97,7 @@ export default function Dashboard() {
               <span>of {stats.members.total} total</span>
             </div>
           </Link>
-          <Link to="/payments" className="stat orange">
+          <Link to="/payments" className="stat red">
             <span className="stat-icon">
               <Icon name="wallet" />
             </span>
@@ -99,40 +107,61 @@ export default function Dashboard() {
               <span>{plural(stats.dues.count, 'member')}</span>
             </div>
           </Link>
-          <button className={`stat green ${month ? 'on' : ''}`} onClick={() => setMonth(tileMonth.month)}>
-            <span className="stat-icon">
-              <Icon name="rupee" />
-            </span>
-            <div>
-              <b>{moneyShort(tileMonth.net)}</b>
-              <span>{MONTHS[tileMonth.month - 1]} collection</span>
-              <span>{plural(tileMonth.count, 'payment')}</span>
-            </div>
-          </button>
-          <button className={`stat purple ${month ? '' : 'on'}`} onClick={() => setMonth(0)}>
-            <span className="stat-icon">
-              <Icon name="chart" />
-            </span>
-            <div>
-              <b>{moneyShort(stats.total.net)}</b>
-              <span>{stats.year} collection</span>
-              <span>{plural(stats.total.count, 'payment')}</span>
-            </div>
-          </button>
         </div>
 
         <div className="card">
           <div className="chart-head">
-            <h3>Monthly collection</h3>
-            <p>Money received minus refunds, {stats.year}. Tap a month to see its details.</p>
+            <h3>{scopeName}</h3>
+            <p>{month ? 'Income, expenses and profit for the selected month.' : 'Income, expenses and profit for the whole year.'}</p>
           </div>
-          <ColumnChart
-            title={`Monthly collection in ${stats.year}`}
+          <div className="tri">
+            <div className="tri-box income">
+              <span>Income</span>
+              <b>{moneyShort(scope.net)}</b>
+              <small>{plural(scope.count, 'payment')}</small>
+            </div>
+            <Link to="/expenses" className="tri-box expense">
+              <span>Expenses</span>
+              <b>{moneyShort(scope.expense)}</b>
+              <small>{plural(scope.expenseCount, 'expense')}</small>
+            </Link>
+            <div className="tri-box profit">
+              <span>{scope.profit < 0 ? 'Loss' : 'Profit'}</span>
+              <b>{moneyShort(scope.profit)}</b>
+              <small>after expenses</small>
+            </div>
+          </div>
+          {month > 0 && (
+            <button className="year-strip" onClick={() => setMonth(0)}>
+              <span>Full year {stats.year}</span>
+              <b>
+                {moneyShort(stats.total.net)} in · {moneyShort(stats.total.expense)} out · {moneyShort(stats.total.profit)} {stats.total.profit < 0 ? 'loss' : 'profit'}
+              </b>
+            </button>
+          )}
+          <div className="btn-grid" style={{ marginTop: 12 }}>
+            <button className="btn small primary" onClick={() => setAdding(true)}>
+              + Add expense
+            </button>
+            <Link className="btn small" to="/expenses">
+              See expenses
+            </Link>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="chart-head">
+            <h3>Income vs expenses</h3>
+            <p>Each month of {stats.year}. Tap a month to see its details.</p>
+          </div>
+          <GroupedChart
+            title={`Income and expenses by month in ${stats.year}`}
+            series={SERIES}
             data={stats.months.map((m, i) => ({
               label: MONTHS[i],
               name: `${MONTH_NAMES[i]} ${stats.year}`,
-              value: future(m) ? null : m.net,
-              note: plural(m.count, 'payment'),
+              values: future(m) ? null : [m.net, m.expense],
+              extra: [{ label: m.profit < 0 ? 'Loss' : 'Profit', value: m.profit }],
             }))}
             selected={month ? month - 1 : null}
             onSelect={(i) => setMonth(i + 1)}
@@ -143,8 +172,28 @@ export default function Dashboard() {
 
         <div className="card">
           <div className="chart-head">
-            <h3>{scopeName}</h3>
-            <p>{month ? 'Collection for the selected month.' : 'Collection for the whole year.'}</p>
+            <h3>Profit by month</h3>
+            <p>Income minus expenses, {stats.year}. A bar below the line is a loss.</p>
+          </div>
+          <ColumnChart
+            tone="profit"
+            title={`Profit by month in ${stats.year}`}
+            data={stats.months.map((m, i) => ({
+              label: MONTHS[i],
+              name: `${MONTH_NAMES[i]} ${stats.year}`,
+              value: future(m) ? null : m.profit,
+              note: m.profit < 0 ? 'loss' : 'profit',
+            }))}
+            selected={month ? month - 1 : null}
+            onSelect={(i) => setMonth(i + 1)}
+            format={moneyShort}
+            formatFull={money}
+          />
+        </div>
+
+        <div className="card">
+          <div className="chart-head">
+            <h3>Details · {scopeName}</h3>
           </div>
           <div className="money-grid first">
             <div>
@@ -156,7 +205,7 @@ export default function Dashboard() {
               <b className={scope.refunded > 0 ? 'due' : ''}>{money(scope.refunded)}</b>
             </div>
             <div>
-              <span>Net</span>
+              <span>Income</span>
               <b>{money(scope.net)}</b>
             </div>
           </div>
@@ -171,7 +220,11 @@ export default function Dashboard() {
           <div className="chart-head sub">
             <h3>Received by payment mode</h3>
           </div>
-          <ShareBars rows={modeRows} format={money} />
+          <ShareBars rows={modes.map((m) => ({ label: m, value: scope.byMode[m] || 0 }))} format={money} />
+          <div className="chart-head sub">
+            <h3>Expenses by category</h3>
+          </div>
+          {categoryRows.length ? <ShareBars tone="expense wide" rows={categoryRows} format={money} /> : <p className="hint">No expenses recorded for this period.</p>}
         </div>
 
         <div className="card">
@@ -191,36 +244,51 @@ export default function Dashboard() {
           <div className="chart-head">
             <h3>Month by month, {stats.year}</h3>
           </div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Active</th>
-                <th>Payments</th>
-                <th>Collection</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.months.map((m, i) => (
-                <tr key={m.month} className={month === m.month ? 'on' : ''} onClick={() => setMonth(m.month)}>
-                  <td>{MONTH_NAMES[i]}</td>
-                  <td>{m.active ?? '—'}</td>
-                  <td>{future(m) ? '—' : m.count}</td>
-                  <td>{future(m) ? '—' : money(m.net)}</td>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th className="hide-narrow">Active</th>
+                  <th>Income</th>
+                  <th>Expenses</th>
+                  <th>Profit</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className={month ? '' : 'on'} onClick={() => setMonth(0)}>
-                <td>Full year</td>
-                <td />
-                <td>{stats.total.count}</td>
-                <td>{money(stats.total.net)}</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {stats.months.map((m, i) => (
+                  <tr key={m.month} className={month === m.month ? 'on' : ''} onClick={() => setMonth(m.month)}>
+                    <td>{MONTHS[i]}</td>
+                    <td className="hide-narrow">{m.active ?? '—'}</td>
+                    <td>{future(m) ? '—' : money(m.net)}</td>
+                    <td>{future(m) ? '—' : money(m.expense)}</td>
+                    <td className={m.profit < 0 ? 'loss' : ''}>{future(m) ? '—' : money(m.profit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className={month ? '' : 'on'} onClick={() => setMonth(0)}>
+                  <td>Year</td>
+                  <td className="hide-narrow" />
+                  <td>{money(stats.total.net)}</td>
+                  <td>{money(stats.total.expense)}</td>
+                  <td className={stats.total.profit < 0 ? 'loss' : ''}>{money(stats.total.profit)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
+      {adding && (
+        <ExpenseSheet
+          expense={null}
+          onClose={() => setAdding(false)}
+          onDone={() => {
+            setAdding(false)
+            reload()
+          }}
+        />
+      )}
     </>
   )
 }

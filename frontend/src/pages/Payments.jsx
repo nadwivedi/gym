@@ -1,13 +1,20 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useLoad } from '../api.js'
 import { Avatar, Badge, ContactButtons, Icon, Loading, MemberRow } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 import { fmtDate, money } from '../format.js'
 import PaymentSheet from '../sheets/PaymentSheet.jsx'
 
+const TABS = [
+  { key: 'dues', label: 'Pending dues' },
+  { key: 'recent', label: 'Received' },
+]
+
 export default function Payments() {
-  const [tab, setTab] = useState('dues')
+  // The tab lives in the address (?tab=recent) so other screens can link straight to one.
+  const [params, setParams] = useSearchParams()
+  const tab = TABS.some((t) => t.key === params.get('tab')) ? params.get('tab') : 'dues'
   return (
     <>
       <header className="topbar">
@@ -15,12 +22,11 @@ export default function Payments() {
       </header>
       <div className="page">
         <div className="tabs" role="tablist">
-          <button role="tab" aria-selected={tab === 'dues'} className={`tab ${tab === 'dues' ? 'active' : ''}`} onClick={() => setTab('dues')}>
-            Pending dues
-          </button>
-          <button role="tab" aria-selected={tab === 'recent'} className={`tab ${tab === 'recent' ? 'active' : ''}`} onClick={() => setTab('recent')}>
-            Recent payments
-          </button>
+          {TABS.map((t) => (
+            <button key={t.key} role="tab" aria-selected={tab === t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => setParams({ tab: t.key }, { replace: true })}>
+              {t.label}
+            </button>
+          ))}
         </div>
         {tab === 'dues' ? <Dues /> : <Recent />}
       </div>
@@ -42,7 +48,7 @@ function Dues() {
   const total = rows.reduce((sum, s) => sum + s.balance, 0)
   return (
     <>
-      <div className="stat orange">
+      <div className="stat red">
         <span className="stat-icon">
           <Icon name="rupee" />
         </span>

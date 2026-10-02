@@ -18,16 +18,16 @@ function useWidth() {
 // Round axis steps: 0 / 5,000 / 10,000 rather than 0 / 4,731 / 9,462.
 function niceTicks(min, max, wholeNumbers) {
   if (max <= 0 && min >= 0) return [0, 1]
-  const rough = (max - Math.min(min, 0)) / 4
+  const rough = (Math.max(max, 0) - Math.min(min, 0)) / 4
   const pow = 10 ** Math.floor(Math.log10(rough))
   let step = [1, 2, 2.5, 5, 10].find((s) => s * pow >= rough) * pow
   if (wholeNumbers) step = Math.max(1, Math.ceil(step))
   const ticks = []
-  for (let v = Math.floor(Math.min(min, 0) / step) * step; v < max + step; v += step) ticks.push(Math.round(v * 100) / 100)
+  for (let v = Math.floor(Math.min(min, 0) / step) * step; v < Math.max(max, 0) + step; v += step) ticks.push(Math.round(v * 100) / 100)
   return ticks
 }
 
-function Axes({ width, ticks, y, labels, x, format, dim }) {
+function Axes({ width, ticks, y, labels, x, format, dim, bold }) {
   return (
     <>
       {ticks.map((t) => (
@@ -39,7 +39,7 @@ function Axes({ width, ticks, y, labels, x, format, dim }) {
         </g>
       ))}
       {labels.map((label, i) => (
-        <text key={label} className={`chart-tick ${dim?.(i) ? 'dim' : ''}`} x={x(i)} y={H - 7} textAnchor="middle">
+        <text key={i} className={`chart-tick ${dim?.(i) ? 'dim' : ''} ${bold === i ? 'on' : ''}`} x={x(i)} y={H - 7} textAnchor="middle">
           {label}
         </text>
       ))}
@@ -47,19 +47,48 @@ function Axes({ width, ticks, y, labels, x, format, dim }) {
   )
 }
 
-function Tip({ at, width, value, label }) {
-  if (!at) return null
+function Tip({ at, width, children }) {
   return (
-    <div className="chart-tip" style={{ left: Math.min(Math.max(at.x, 56), width - 56), top: at.y - 8 }}>
-      <b>{value}</b>
-      <span>{label}</span>
+    <div className="chart-tip" style={{ left: Math.min(Math.max(at.x, 70), width - 70), top: at.y - 8 }}>
+      {children}
     </div>
   )
 }
 
-// One column per item; tap a column to select it.
+// A bar that is rounded at the data end and square on the baseline. Works above and below zero.
+function barPath(x0, w, base, tip) {
+  const r = Math.min(4, Math.abs(tip - base), w / 2)
+  const d = tip < base ? r : -r
+  return `M${x0},${base} V${tip + d} Q${x0},${tip} ${x0 + r},${tip} H${x0 + w - r} Q${x0 + w},${tip} ${x0 + w},${tip + d} V${base} Z`
+}
+
+// One transparent, focusable target per column, as wide as its whole slot.
+function HitTargets({ data, band, selected, onSelect, setHover, describe }) {
+  return data.map((d, i) => (
+    <rect
+      key={i}
+      className="chart-hit"
+      x={M.left + band * i}
+      y={M.top}
+      width={band}
+      height={PLOT_H + M.bottom}
+      role="button"
+      tabIndex={0}
+      aria-pressed={i === selected}
+      aria-label={describe(d)}
+      onClick={() => onSelect(i)}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onSelect(i))}
+      onPointerEnter={() => setHover(i)}
+      onPointerLeave={() => setHover(null)}
+      onFocus={() => setHover(i)}
+      onBlur={() => setHover(null)}
+    />
+  ))
+}
+
+// One column per item; tap a column to select it. The selected column is drawn in the accent, the rest stepped back.
 // data: [{ label, name, value, note }] where value null = no data yet (a month that has not come).
-export function ColumnChart({ data, selected, onSelect, format, formatFull, title }) {
+export function ColumnChart({ data, selected, onSelect, format, formatFull, title, tone = '' }) {
   const [ref, width] = useWidth()
   const [hover, setHover] = useState(null)
   const values = data.map((d) => d.value ?? 0)
@@ -69,62 +98,118 @@ export function ColumnChart({ data, selected, onSelect, format, formatFull, titl
   const barW = Math.max(4, Math.min(24, band - 6))
   const x = (i) => M.left + band * (i + 0.5)
   const y = (v) => M.top + PLOT_H * (1 - (v - lo) / (hi - lo))
-  const short = band < 24
-
-  const bar = (i, v) => {
-    const [x0, base, tip] = [x(i) - barW / 2, y(0), y(v)]
-    const r = Math.min(4, Math.abs(tip - base), barW / 2) * (v < 0 ? -1 : 1)
-    // Rounded at the data end, square on the baseline.
-    return `M${x0},${base} V${tip + r} Q${x0},${tip} ${x0 + Math.abs(r)},${tip} H${x0 + barW - Math.abs(r)} Q${x0 + barW},${tip} ${x0 + barW},${tip + r} V${base} Z`
-  }
+  // The value label sits past the data end: above a gain, below a loss.
+  const labelY = (v) => (v < 0 ? y(v) + 14 : y(v) - 6)
 
   return (
-    <div className="chart" ref={ref}>
+    <div className={`chart ${tone}`} ref={ref}>
       {width > 0 && (
         <svg width={width} height={H} role="group" aria-label={title}>
-          <Axes width={width} ticks={ticks} y={y} x={x} format={format} labels={data.map((d) => (short ? d.label[0] : d.label))} dim={(i) => data[i].value == null} />
+          <Axes width={width} ticks={ticks} y={y} x={x} format={format} labels={data.map((d) => (band < 24 ? d.label[0] : d.label))} dim={(i) => data[i].value == null} />
           {data.map((d, i) =>
-            d.value ? <path key={d.label} d={bar(i, d.value)} className={`chart-bar ${i === selected ? 'on' : ''} ${i === hover ? 'hover' : ''}`} /> : null,
+            d.value ? (
+              <path key={i} d={barPath(x(i) - barW / 2, barW, y(0), y(d.value))} className={`chart-bar ${i === selected ? 'on' : ''} ${i === hover ? 'hover' : ''}`} />
+            ) : null,
           )}
           {selected != null && data[selected].value != null && (
-            <text
-              className="chart-value"
-              x={Math.min(Math.max(x(selected), M.left + 22), width - M.right - 22)}
-              y={Math.min(y(Math.max(data[selected].value, 0)), y(0)) - 6}
-              textAnchor="middle"
-            >
+            <text className="chart-value" x={Math.min(Math.max(x(selected), M.left + 22), width - M.right - 22)} y={labelY(data[selected].value)} textAnchor="middle">
               {format(data[selected].value)}
             </text>
           )}
-          {data.map((d, i) => (
-            <rect
-              key={d.label}
-              className="chart-hit"
-              x={M.left + band * i}
-              y={M.top}
-              width={band}
-              height={PLOT_H + M.bottom}
-              role="button"
-              tabIndex={0}
-              aria-pressed={i === selected}
-              aria-label={`${d.name}: ${d.value == null ? 'no data yet' : formatFull(d.value)}`}
-              onClick={() => onSelect(i)}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onSelect(i))}
-              onPointerEnter={() => setHover(i)}
-              onPointerLeave={() => setHover(null)}
-              onFocus={() => setHover(i)}
-              onBlur={() => setHover(null)}
-            />
-          ))}
+          <HitTargets
+            data={data}
+            band={band}
+            selected={selected}
+            onSelect={onSelect}
+            setHover={setHover}
+            describe={(d) => `${d.name}: ${d.value == null ? 'no data yet' : formatFull(d.value)}`}
+          />
         </svg>
       )}
       {hover != null && hover !== selected && data[hover].value != null && (
-        <Tip
-          at={{ x: x(hover), y: Math.min(y(Math.max(data[hover].value, 0)), y(0)) }}
-          width={width}
-          value={formatFull(data[hover].value)}
-          label={`${data[hover].name}${data[hover].note ? ` · ${data[hover].note}` : ''}`}
-        />
+        <Tip at={{ x: x(hover), y: y(Math.max(data[hover].value, 0)) }} width={width}>
+          <b>{formatFull(data[hover].value)}</b>
+          <span>
+            {data[hover].name}
+            {data[hover].note ? ` · ${data[hover].note}` : ''}
+          </span>
+        </Tip>
+      )}
+    </div>
+  )
+}
+
+// Two or more columns side by side per item, one colour per series. Tap an item to select it.
+// series: [{ label, tone }]   data: [{ label, name, values: [..] | null, extra: [{ label, value }] }]
+export function GroupedChart({ data, series, selected, onSelect, format, formatFull, title }) {
+  const [ref, width] = useWidth()
+  const [hover, setHover] = useState(null)
+  const ticks = niceTicks(0, Math.max(0, ...data.flatMap((d) => d.values || [])))
+  const hi = ticks.at(-1)
+  const band = (width - M.left - M.right) / data.length
+  const gap = 2 // surface gap between the bars of one group
+  const barW = Math.max(3, Math.min(14, (band - 6 - gap * (series.length - 1)) / series.length))
+  const groupW = barW * series.length + gap * (series.length - 1)
+  const x = (i) => M.left + band * (i + 0.5)
+  const y = (v) => M.top + PLOT_H * (1 - v / hi)
+  const shown = hover != null && data[hover].values ? data[hover] : null
+
+  return (
+    <div className="chart" ref={ref}>
+      <div className="legend">
+        {series.map((s) => (
+          <span key={s.label}>
+            <i className={`swatch ${s.tone}`} />
+            {s.label}
+          </span>
+        ))}
+      </div>
+      {width > 0 && (
+        <svg width={width} height={H} role="group" aria-label={title}>
+          {selected != null && <rect className="chart-band" x={M.left + band * selected} y={M.top - 6} width={band} height={PLOT_H + 6} rx="6" />}
+          <Axes
+            width={width}
+            ticks={ticks}
+            y={y}
+            x={x}
+            format={format}
+            labels={data.map((d) => (band < 24 ? d.label[0] : d.label))}
+            dim={(i) => !data[i].values}
+            bold={selected}
+          />
+          {data.map((d, i) =>
+            (d.values || []).map((v, j) =>
+              v > 0 ? <path key={`${i}-${j}`} className={`series ${series[j].tone}`} d={barPath(x(i) - groupW / 2 + j * (barW + gap), barW, y(0), y(v))} /> : null,
+            ),
+          )}
+          <HitTargets
+            data={data}
+            band={band}
+            selected={selected}
+            onSelect={onSelect}
+            setHover={setHover}
+            describe={(d) => `${d.name}: ${d.values ? series.map((s, j) => `${s.label} ${formatFull(d.values[j])}`).join(', ') : 'no data yet'}`}
+          />
+        </svg>
+      )}
+      {shown && (
+        <Tip at={{ x: x(hover), y: y(Math.max(...shown.values)) }} width={width}>
+          <span>{shown.name}</span>
+          {series.map((s, j) => (
+            <div className="tip-row" key={s.label}>
+              <i className={`key ${s.tone}`} />
+              <b>{formatFull(shown.values[j])}</b>
+              <span>{s.label}</span>
+            </div>
+          ))}
+          {(shown.extra || []).map((e) => (
+            <div className="tip-row" key={e.label}>
+              <i className="key none" />
+              <b>{formatFull(e.value)}</b>
+              <span>{e.label}</span>
+            </div>
+          ))}
+        </Tip>
       )}
     </div>
   )
@@ -146,7 +231,7 @@ export function TrendChart({ data, format, title, unit }) {
 
   // The pointer only has to be nearest to a month, never exactly on the line.
   const track = (e) => {
-    const px = e.clientX - e.currentTarget.getBoundingClientRect().left
+    const px = e.clientX - e.currentTarget.getBoundingClientRect().left + M.left
     const nearest = points.reduce((best, d) => (Math.abs(x(d.i) - px) < Math.abs(x(best.i) - px) ? d : best), points[0])
     setHover(nearest.i)
   }
@@ -179,16 +264,23 @@ export function TrendChart({ data, format, title, unit }) {
           )}
         </svg>
       )}
-      {shown && <Tip at={{ x: x(hover), y: y(shown.value) }} width={width} value={`${format(shown.value)} ${unit}`} label={shown.name} />}
+      {shown && (
+        <Tip at={{ x: x(hover), y: y(shown.value) }} width={width}>
+          <b>
+            {format(shown.value)} {unit}
+          </b>
+          <span>{shown.name}</span>
+        </Tip>
+      )}
     </div>
   )
 }
 
 // Share bars. rows: [{ label, value }]
-export function ShareBars({ rows, format }) {
+export function ShareBars({ rows, format, tone = '' }) {
   const max = Math.max(...rows.map((r) => r.value), 1)
   return (
-    <div className="share">
+    <div className={`share ${tone}`}>
       {rows.map((r) => (
         <div className="share-row" key={r.label}>
           <span>{r.label}</span>

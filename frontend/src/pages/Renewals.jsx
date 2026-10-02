@@ -58,7 +58,7 @@ export default function Renewals() {
       </header>
       <div className="page">
         <div className="stat-grid">
-          <Link to="/members" className="stat">
+          <Link to="/members" className="stat green">
             <span className="stat-icon">
               <Icon name="users" />
             </span>
@@ -67,7 +67,7 @@ export default function Renewals() {
               <span>Active members</span>
             </div>
           </Link>
-          <Link to="/payments" className="stat orange">
+          <Link to="/payments" className="stat red">
             <span className="stat-icon">
               <Icon name="rupee" />
             </span>

@@ -1,7 +1,7 @@
 import os from 'node:os'
 import mongoose from 'mongoose'
 import { createApp } from './app.js'
-import { seedPlans } from './db.js'
+import { seedDefaults } from './db.js'
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/gymsoft'
 const PORT = Number(process.env.PORT) || 4000
@@ -12,7 +12,7 @@ try {
   console.error(`Could not connect to MongoDB at ${MONGO_URL}. Is the MongoDB service running?\n${err.message}`)
   process.exit(1)
 }
-await seedPlans()
+await seedDefaults()
 
 createApp().listen(PORT, '0.0.0.0', () => {
   console.log(`Gym software is running.\n  On this PC:   http://localhost:${PORT}`)
