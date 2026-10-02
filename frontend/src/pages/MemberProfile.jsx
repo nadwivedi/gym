@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, useAction, useLoad } from '../api.js'
-import { Badge, ContactButtons, ErrorBox, Icon, Loading } from '../components/ui.jsx'
+import { Avatar, Badge, ContactButtons, ErrorBox, Icon, Loading } from '../components/ui.jsx'
 import { dueInfo, fmtDate, money } from '../format.js'
 import { EditMemberSheet, HideSheet } from '../sheets/MemberSheets.jsx'
 import PaymentEditSheet from '../sheets/PaymentEditSheet.jsx'
@@ -67,20 +67,20 @@ export default function MemberProfile() {
       </header>
 
       <div className="page">
-        <div className="card">
-          <div className="row">
+        <div className="card hero">
+          <div className="hero-head">
+            <Avatar name={member.name} big off={member.hidden} />
             <div className="row-main">
-              <div className="row-sub">
-                Member #{member.memberNo}
-                {member.phone ? ` · ${member.phone}` : ''}
-              </div>
-              <div className="row-sub">First joined {fmtDate(member.joinDate)}</div>
+              <div className="row-title">Member #{member.memberNo}</div>
+              {member.phone && <div className="row-sub">{member.phone}</div>}
+              <div className="row-sub">Joined {fmtDate(member.joinDate)}</div>
             </div>
             <div className="row-side">
               <Badge tone={due.tone}>{due.text}</Badge>
               {member.hidden && <Badge>Hidden</Badge>}
             </div>
           </div>
+          <div className="hero-body">
           {!noMembership && (
             <div className="kv">
               <span>Next renewal date</span>
@@ -124,6 +124,7 @@ export default function MemberProfile() {
               </button>
             )}
           </div>
+          </div>
         </div>
         <ErrorBox error={action.error} />
 
@@ -143,14 +144,26 @@ export default function MemberProfile() {
                   {p.balance > 0 && <Badge tone="danger">Due {money(p.balance)}</Badge>}
                 </div>
               </div>
-              <div className="kv">
-                <span>Fee{p.admissionFee > 0 ? ` (incl. ${money(p.admissionFee)} admission)` : ''}</span>
-                <span>{money(p.total)}</span>
+              <div className="money-grid">
+                <div>
+                  <span>Total fee</span>
+                  <b>{money(p.total)}</b>
+                </div>
+                <div>
+                  <span>Paid</span>
+                  <b className="paid">{money(p.paid)}</b>
+                </div>
+                <div>
+                  <span>Balance</span>
+                  <b className={p.balance > 0 ? 'due' : ''}>{money(p.balance)}</b>
+                </div>
               </div>
-              <div className="kv">
-                <span>Paid</span>
-                <span>{money(p.paid)}</span>
-              </div>
+              {p.admissionFee > 0 && (
+                <div className="kv">
+                  <span>Includes admission fee</span>
+                  <span>{money(p.admissionFee)}</span>
+                </div>
+              )}
               {p.refunded > 0 && (
                 <div className="kv">
                   <span>Refunded</span>

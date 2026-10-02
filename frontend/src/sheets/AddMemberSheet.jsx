@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { addMonths } from '../../../shared/domain.mjs'
 import { api, saveWithDuplicateCheck, useAction } from '../api.js'
 import { DateInput, MoneyInput, PayNowFields, PhoneInput, PlanPicker } from '../components/fields.jsx'
-import { ErrorBox, Field, Group, Sheet } from '../components/ui.jsx'
+import { ErrorBox, Field, Group, Section, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 import { fmtDate, payNowBody, promisedBody } from '../format.js'
 
@@ -58,50 +58,56 @@ export default function AddMemberSheet({ onClose }) {
     // A stray tap outside must not throw away a half-filled form: only the cross closes it.
     <Sheet title="New admission" onClose={onClose} closeOnBackdrop={false}>
       <form className="form" onSubmit={submit}>
-        <Field label="Member name">
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} autoComplete="off" autoFocus />
-        </Field>
-        <div className="field-row">
-          <Field label="Phone">
-            <PhoneInput value={phone} onChange={setPhone} />
+        <Section num="1" title="Member">
+          <Field label="Member name">
+            <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} autoComplete="off" autoFocus />
           </Field>
-          <Field label="Gender">
-            <select value={gender} onChange={(e) => setGender(e.target.value)}>
-              <option value="">Not set</option>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-            </select>
-          </Field>
-        </div>
-
-        <Group label="Plan">
-          <PlanPicker
-            value={plan?.id}
-            onChange={(p) => {
-              setPlan(p)
-              setFee(String(p.price))
-            }}
-          />
-        </Group>
-        <Field label="Membership starts on">
-          <DateInput value={startDate} onChange={setStartDate} required />
-        </Field>
-        {renewalDate && (
-          <div className="box info">
-            {startDate > today ? 'Starts later. ' : ''}Next renewal date: <b>{fmtDate(renewalDate)}</b>
+          <div className="field-row">
+            <Field label="Phone">
+              <PhoneInput value={phone} onChange={setPhone} />
+            </Field>
+            <Field label="Gender">
+              <select value={gender} onChange={(e) => setGender(e.target.value)}>
+                <option value="">Not set</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </Field>
           </div>
-        )}
-        <div className="field-row">
-          <Field label="Plan fee">
-            <MoneyInput value={fee} onChange={setFee} required />
-          </Field>
-          <Field label="Admission fee">
-            <MoneyInput value={admissionFee} onChange={setAdmissionFee} />
-          </Field>
-        </div>
+        </Section>
 
-        <PayNowFields total={total} value={pay} onChange={setPay} />
+        <Section num="2" title="Membership">
+          <Group label="Plan">
+            <PlanPicker
+              value={plan?.id}
+              onChange={(p) => {
+                setPlan(p)
+                setFee(String(p.price))
+              }}
+            />
+          </Group>
+          <Field label="Membership starts on">
+            <DateInput value={startDate} onChange={setStartDate} required />
+          </Field>
+          {renewalDate && (
+            <div className="box info">
+              {startDate > today ? 'Starts later. ' : ''}Next renewal date: <b>{fmtDate(renewalDate)}</b>
+            </div>
+          )}
+          <div className="field-row">
+            <Field label="Plan fee">
+              <MoneyInput value={fee} onChange={setFee} required />
+            </Field>
+            <Field label="Admission fee">
+              <MoneyInput value={admissionFee} onChange={setAdmissionFee} />
+            </Field>
+          </div>
+        </Section>
+
+        <Section num="3" title="Payment">
+          <PayNowFields total={total} value={pay} onChange={setPay} />
+        </Section>
 
         <Field label="Notes (optional)">
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />

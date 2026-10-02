@@ -4,21 +4,23 @@ Member admission, renewals, payments and dues for one gym. Mobile-first web app.
 
 ## Start
 
-Double-click `start.bat` (MongoDB must be running as a Windows service). Then open:
+MongoDB must be running as a Windows service. Install once, then run both parts:
 
-- on this PC: http://localhost:4000
-- on a phone on the same Wi-Fi: the `http://192.168…:4000` address printed in the window
+```
+npm --prefix backend install
+npm --prefix frontend install
+npm --prefix backend run dev        # API on http://localhost:4000
+npm --prefix frontend run dev       # app on http://localhost:5173 (also on your phone, same Wi-Fi)
+```
 
 The first visit asks you to set a PIN. Set plan prices under **More → Plans and prices**.
 
-## After changing the code
+## Other commands
 
 ```
-npm --prefix frontend run build     # rebuild the screens served by start.bat
 npm --prefix backend test           # rules + API tests (uses the gymsoft_test database)
+npm --prefix frontend run build     # build the screens; `npm --prefix backend start` then serves them on port 4000
 ```
-
-For live editing run `npm --prefix backend run dev` and `npm --prefix frontend run dev` (http://localhost:5173).
 
 ## Layout
 

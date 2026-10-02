@@ -38,13 +38,15 @@ function Shell({ onLock }) {
   const closeAdd = useCallback(() => setAdding(false), [])
   if (!boot.data) {
     return (
-      <div className="login">
-        <Loading error={boot.error} />
-        {boot.error && (
-          <button className="btn" onClick={boot.reload}>
-            Try again
-          </button>
-        )}
+      <div className="login-wrap">
+        <div className="login">
+          <Loading error={boot.error} />
+          {boot.error && (
+            <button className="btn" onClick={boot.reload}>
+              Try again
+            </button>
+          )}
+        </div>
       </div>
     )
   }

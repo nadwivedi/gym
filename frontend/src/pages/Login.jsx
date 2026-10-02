@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, setToken, useAction, useLoad } from '../api.js'
-import { ErrorBox, Field, Loading } from '../components/ui.jsx'
+import { ErrorBox, Field, Icon, Loading } from '../components/ui.jsx'
 
 const pinProps = { type: 'password', inputMode: 'numeric', pattern: '\\d{4,8}', maxLength: 8, autoComplete: 'off', required: true }
 
@@ -13,13 +13,15 @@ export default function Login({ onDone }) {
 
   if (!status.data) {
     return (
-      <div className="login">
-        <Loading error={status.error} />
-        {status.error && (
-          <button className="btn" onClick={status.reload}>
-            Try again
-          </button>
-        )}
+      <div className="login-wrap">
+        <div className="login">
+          <Loading error={status.error} />
+          {status.error && (
+            <button className="btn" onClick={status.reload}>
+              Try again
+            </button>
+          )}
+        </div>
       </div>
     )
   }
@@ -35,7 +37,11 @@ export default function Login({ onDone }) {
   }
 
   return (
+    <div className="login-wrap">
     <form className="login" onSubmit={submit}>
+      <span className="login-logo">
+        <Icon name="lock" />
+      </span>
       <div>
         <h1>{setup ? 'Welcome' : status.data.gymName}</h1>
         <p className="hint">{setup ? 'Set a PIN to protect your member and payment records.' : 'Enter your PIN to continue.'}</p>
@@ -59,5 +65,6 @@ export default function Login({ onDone }) {
         {busy ? 'Please wait…' : setup ? 'Save PIN and start' : 'Unlock'}
       </button>
     </form>
+    </div>
   )
 }

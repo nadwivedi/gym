@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, useAction, useLoad } from '../api.js'
-import { ContactButtons, ErrorBox, Loading, MemberRow } from '../components/ui.jsx'
+import { ContactButtons, ErrorBox, Icon, Loading, MemberRow } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 import { fmtDate, money } from '../format.js'
 import { HideSheet } from '../sheets/MemberSheets.jsx'
@@ -52,20 +52,31 @@ export default function Renewals() {
     <>
       <header className="topbar">
         <h1>
-          {settings.gymName} <span className="sub">· {fmtDate(today)}</span>
+          {settings.gymName}
+          <span className="sub">Renewals · {fmtDate(today)}</span>
         </h1>
       </header>
       <div className="page">
         <div className="stat-grid">
           <Link to="/members" className="stat">
-            <b>{stats.active}</b>
-            <span>Active members</span>
-          </Link>
-          <Link to="/payments" className="stat">
-            <b>{money(stats.duesTotal)}</b>
-            <span>
-              Pending dues · {stats.duesCount} member{stats.duesCount === 1 ? '' : 's'}
+            <span className="stat-icon">
+              <Icon name="users" />
             </span>
+            <div>
+              <b>{stats.active}</b>
+              <span>Active members</span>
+            </div>
+          </Link>
+          <Link to="/payments" className="stat orange">
+            <span className="stat-icon">
+              <Icon name="rupee" />
+            </span>
+            <div>
+              <b>{money(stats.duesTotal)}</b>
+              <span>
+                Dues · {stats.duesCount} member{stats.duesCount === 1 ? '' : 's'}
+              </span>
+            </div>
           </Link>
         </div>
 

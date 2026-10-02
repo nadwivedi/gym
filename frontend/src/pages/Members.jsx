@@ -28,14 +28,21 @@ export default function Members() {
     <>
       <header className="topbar">
         <h1>
-          Members {data && <span className="sub">· {rows.length}</span>}
+          Members
+          {data && (
+            <span className="sub">
+              {rows.length} member{rows.length === 1 ? '' : 's'} shown
+            </span>
+          )}
         </h1>
         <button className="btn small primary" onClick={openAdd}>
           + Add
         </button>
       </header>
       <div className="page">
-        <input className="search" type="search" placeholder="Search name, phone or member number" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="search-box">
+          <input className="search" type="search" placeholder="Search name, phone or member number" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
         {!text && (
           <div className="chips">
             {FILTERS.map((f) => (

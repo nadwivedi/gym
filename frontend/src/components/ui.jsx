@@ -11,6 +11,42 @@ const ICONS = {
   menu: 'M4 7h16M4 12h16M4 17h16',
   close: 'M6 6l12 12M18 6L6 18',
   back: 'M15 5l-7 7 7 7',
+  phone:
+    'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z',
+  chat: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z',
+  lock: 'M7 11V7a5 5 0 0 1 10 0v4M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z',
+  rupee: 'M6 3h12M6 8h12M6 13l8.5 8M6 13h3a5 5 0 0 0 0-10',
+}
+
+// "Rohit Sharma" -> "RS"
+const initials = (name) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+
+export function Avatar({ name, big, off }) {
+  return (
+    <span className={`avatar ${big ? 'big' : ''} ${off ? 'off' : ''}`} aria-hidden="true">
+      {initials(name)}
+    </span>
+  )
+}
+
+// Numbered block of a long form.
+export function Section({ num, title, children }) {
+  return (
+    <div className="section">
+      <h3>
+        <span className="num">{num}</span>
+        {title}
+      </h3>
+      {children}
+    </div>
+  )
 }
 
 export function Icon({ name }) {
@@ -49,7 +85,7 @@ export function Group({ label, children }) {
 }
 
 export function Loading({ error }) {
-  return error ? <ErrorBox error={error} /> : <div className="empty">Loading…</div>
+  return error ? <ErrorBox error={error} /> : <div className="loading">Loading…</div>
 }
 
 export function Sheet({ title, onClose, closeOnBackdrop = true, children }) {
@@ -84,10 +120,12 @@ export function ContactButtons({ s }) {
   if (!s.phone) return null
   return (
     <>
-      <a className="btn small" href={telLink(s.phone)}>
+      <a className="btn small call" href={telLink(s.phone)}>
+        <Icon name="phone" />
         Call
       </a>
-      <a className="btn small" href={waLink(s.phone, settings.countryCode, reminderText(s, settings.gymName))} target="_blank" rel="noreferrer">
+      <a className="btn small wa" href={waLink(s.phone, settings.countryCode, reminderText(s, settings.gymName))} target="_blank" rel="noreferrer">
+        <Icon name="chat" />
         WhatsApp
       </a>
     </>
@@ -97,23 +135,28 @@ export function ContactButtons({ s }) {
 export function MemberRow({ s, children, note }) {
   const due = dueInfo(s)
   return (
-    <div className="card">
-      <Link to={`/members/${s.id}`} className="row">
+    <div className="card member">
+      <Link to={`/members/${s.id}`} className="member-head">
+        <Avatar name={s.name} off={s.hidden} />
         <div className="row-main">
           <div className="row-title">{s.name}</div>
           <div className="row-sub">
             #{s.memberNo}
             {s.planName ? ` · ${s.planName}` : ''}
-            {s.renewalDate ? ` · Renewal ${fmtDate(s.renewalDate)}` : ''}
           </div>
-          {note && <div className="row-sub">{note}</div>}
+          {s.renewalDate && <div className="row-sub">Renewal {fmtDate(s.renewalDate)}</div>}
         </div>
         <div className="row-side">
           <Badge tone={s.hidden ? '' : due.tone}>{s.hidden ? 'Hidden' : due.text}</Badge>
           {s.balance > 0 && <Badge tone="danger">Due {money(s.balance)}</Badge>}
         </div>
       </Link>
-      {children && <div className="row-actions">{children}</div>}
+      {(note || children) && (
+        <div className="member-body">
+          {note && <div className="note">{note}</div>}
+          {children && <div className="row-actions">{children}</div>}
+        </div>
+      )}
     </div>
   )
 }

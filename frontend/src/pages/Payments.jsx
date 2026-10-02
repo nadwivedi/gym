@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLoad } from '../api.js'
-import { Badge, ContactButtons, Loading, MemberRow } from '../components/ui.jsx'
+import { Avatar, Badge, ContactButtons, Icon, Loading, MemberRow } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 import { fmtDate, money } from '../format.js'
 import PaymentSheet from '../sheets/PaymentSheet.jsx'
@@ -42,11 +42,16 @@ function Dues() {
   const total = rows.reduce((sum, s) => sum + s.balance, 0)
   return (
     <>
-      <div className="stat">
-        <b>{money(total)}</b>
-        <span>
-          to collect from {rows.length} member{rows.length === 1 ? '' : 's'}
+      <div className="stat orange">
+        <span className="stat-icon">
+          <Icon name="rupee" />
         </span>
+        <div>
+          <b>{money(total)}</b>
+          <span>
+            to collect from {rows.length} member{rows.length === 1 ? '' : 's'}
+          </span>
+        </div>
       </div>
       <div className="list">
         {rows.map((s) => (
@@ -80,6 +85,7 @@ function Recent() {
     <div className="list">
       {data.map((p) => (
         <Link key={p.id} to={`/members/${p.memberId}`} className="card row">
+          <Avatar name={p.memberName} off={p.voided} />
           <div className={`row-main ${p.voided ? 'struck' : ''}`}>
             <div className="row-title">{p.memberName}</div>
             <div className="row-sub">
