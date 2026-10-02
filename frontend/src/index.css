@@ -971,6 +971,10 @@ button.stat {
   gap: 8px;
 }
 
+.btn-grid .chip {
+  justify-content: center;
+}
+
 .link {
   background: none;
   border: none;
@@ -1092,6 +1096,86 @@ button.stat {
 .plan.active,
 .plan.active b {
   color: #fff;
+}
+
+/* Settings: one compact row per plan. */
+.section-title .btn {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.plan-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: none;
+  text-align: left;
+}
+
+.plan-row:first-child {
+  border-top: none;
+}
+
+.plan-row:active {
+  background: var(--surface-2);
+}
+
+.plan-row .row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-months {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.6rem;
+  line-height: 1;
+  background: var(--grad-brand);
+  box-shadow: var(--shadow);
+}
+
+.plan-months b {
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.plan-price {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.plan-row .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transform: scaleX(-1);
+}
+
+.plan-row.off .plan-months {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+.plan-row.off .row-title,
+.plan-row.off .plan-price {
+  color: var(--muted);
 }
 
 /* ---- Forms ---- */

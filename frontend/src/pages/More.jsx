@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { api, download, setToken, useAction } from '../api.js'
-import { MoneyInput } from '../components/fields.jsx'
 import { Link } from 'react-router-dom'
-import { ErrorBox, Field, Icon } from '../components/ui.jsx'
+import { MoneyInput } from '../components/fields.jsx'
+import { Badge, ErrorBox, Field, Group, Icon, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
+import { money } from '../format.js'
 
 export default function More({ onLock }) {
   const { today } = useApp()
@@ -18,7 +19,6 @@ export default function More({ onLock }) {
         <h1>Settings</h1>
       </header>
       <div className="page">
-        <div className="section-title">Plans and prices</div>
         <Plans />
 
         <div className="section-title">Settings</div>
@@ -49,61 +49,92 @@ export default function More({ onLock }) {
   )
 }
 
+// One short row per plan; tapping a row opens a popup to change it.
 function Plans() {
   const { plans, reloadApp } = useApp()
+  const [editing, setEditing] = useState(null) // a plan, or 'new'
+  const saved = () => {
+    setEditing(null)
+    reloadApp()
+  }
   return (
-    <div className="list">
-      {plans.map((p) => (
-        <PlanForm key={p.id} plan={p} onSaved={reloadApp} />
-      ))}
-      <PlanForm key={`new-${plans.length}`} onSaved={reloadApp} />
-    </div>
+    <>
+      <div className="section-title">
+        Plans and prices
+        <button className="btn small primary" onClick={() => setEditing('new')}>
+          + Add plan
+        </button>
+      </div>
+      <div className="card plan-list">
+        {plans.map((p) => (
+          <button key={p.id} className={`plan-row ${p.active ? '' : 'off'}`} onClick={() => setEditing(p)} aria-label={`Edit ${p.name}`}>
+            <span className="plan-months">
+              <b>{p.months}</b>
+              mo
+            </span>
+            <span className="row-main">
+              <span className="row-title">{p.name}</span>
+              {!p.active && <Badge>Off</Badge>}
+            </span>
+            <b className="plan-price">{p.price > 0 ? money(p.price) : 'Set price'}</b>
+            <Icon name="back" />
+          </button>
+        ))}
+        {!plans.length && <div className="empty">No plans yet. Tap + Add plan.</div>}
+      </div>
+      {editing && <PlanSheet plan={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={saved} />}
+    </>
   )
 }
 
-function PlanForm({ plan, onSaved }) {
+function PlanSheet({ plan, onClose, onSaved }) {
   const [name, setName] = useState(plan?.name || '')
   const [months, setMonths] = useState(String(plan?.months || ''))
-  const [price, setPrice] = useState(String(plan?.price ?? ''))
+  const [price, setPrice] = useState(plan ? String(plan.price) : '')
+  const [active, setActive] = useState(plan?.active ?? true)
   const { busy, error, run } = useAction()
-  const changed = !plan || name !== plan.name || months !== String(plan.months) || price !== String(plan.price)
 
   const save = async (e) => {
     e.preventDefault()
     const body = { name, months: Number(months), price: Number(price) || 0 }
-    const saved = await run(() => (plan ? api(`/plans/${plan.id}`, { method: 'PATCH', body }) : api('/plans', { method: 'POST', body })))
+    const saved = await run(() => (plan ? api(`/plans/${plan.id}`, { method: 'PATCH', body: { ...body, active } }) : api('/plans', { method: 'POST', body })))
     if (saved) onSaved()
-  }
-  const toggle = async () => {
-    if (await run(() => api(`/plans/${plan.id}`, { method: 'PATCH', body: { active: !plan.active } }))) onSaved()
   }
 
   return (
-    <form className="card form" onSubmit={save}>
-      <Field label={plan ? 'Plan name' : 'Add a new plan'}>
-        <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} placeholder="e.g. 3 Months" />
-      </Field>
-      <div className="field-row">
-        <Field label="Months">
-          <input type="number" inputMode="numeric" min="1" max="60" value={months} onChange={(e) => setMonths(e.target.value)} required />
+    <Sheet title={plan ? `Edit ${plan.name}` : 'New plan'} onClose={onClose}>
+      <form className="form" onSubmit={save}>
+        <Field label="Plan name">
+          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} placeholder="e.g. 3 Months" />
         </Field>
-        <Field label="Price">
-          <MoneyInput value={price} onChange={setPrice} required />
-        </Field>
-      </div>
-      {plan && !plan.active && <div className="box warn">Switched off: not offered for new admissions or renewals.</div>}
-      <ErrorBox error={error} />
-      <div className="btn-grid">
-        <button className="btn small primary" disabled={busy || !changed}>
-          {plan ? 'Save' : 'Add plan'}
-        </button>
+        <div className="field-row">
+          <Field label="Months">
+            <input type="number" inputMode="numeric" min="1" max="60" value={months} onChange={(e) => setMonths(e.target.value)} required />
+          </Field>
+          <Field label="Price">
+            <MoneyInput value={price} onChange={setPrice} required />
+          </Field>
+        </div>
         {plan && (
-          <button type="button" className="btn small" disabled={busy} onClick={toggle}>
-            {plan.active ? 'Switch off' : 'Switch on'}
-          </button>
+          <Group label="Offer this plan">
+            <div className="btn-grid">
+              <button type="button" className={`chip ${active ? 'active' : ''}`} aria-pressed={active} onClick={() => setActive(true)}>
+                On
+              </button>
+              <button type="button" className={`chip ${active ? '' : 'active'}`} aria-pressed={!active} onClick={() => setActive(false)}>
+                Off
+              </button>
+            </div>
+            {!active && <p className="hint">Off: not offered for new admissions or renewals. Existing memberships keep it.</p>}
+          </Group>
         )}
-      </div>
-    </form>
+        <p className="hint">A new price applies to future admissions and renewals only.</p>
+        <ErrorBox error={error} />
+        <button className="btn primary block" disabled={busy}>
+          {busy ? 'Saving…' : plan ? 'Save plan' : 'Add plan'}
+        </button>
+      </form>
+    </Sheet>
   )
 }
 
