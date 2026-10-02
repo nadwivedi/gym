@@ -40,4 +40,4 @@ npm --prefix frontend run build     # build the screens; `npm --prefix backend s
 
 - Dates are stored as `YYYY-MM-DD`. A membership covers its start date up to, not including, its renewal date.
 - Balance = plan fee + admission fee − waived − payments. Refunds never create a new due.
-- Payments are never deleted: they are edited, moved or cancelled, and the change is logged.
+- Payments are edited, moved or cancelled, and the change is logged. The one exception: deleting a whole membership made by mistake (the owner must type "delete") removes it together with its payments.

@@ -238,6 +238,47 @@ test('refund before the start date cancels the membership', async () => {
   assert.equal(r.summary.balance, 0)
 })
 
+test('a membership made by mistake can be deleted, with its payments, after typing delete', async () => {
+  // Two memberships: the first is right, the renewal was a mistake and already has a payment and a refund.
+  const start = addDays(today, -20)
+  const d = await admit('Mistake Meera', { startDate: start, fee: 1000, paid: 1000 })
+  const good = d.periods[0]
+  const r = await ok('POST', `/members/${d.member.id}/periods`, {
+    planId: plan(3).id,
+    startDate: d.summary.renewalDate,
+    fee: 3000,
+    payment: { amount: 2000, date: today, mode: 'UPI' },
+  })
+  const wrong = r.periods.find((p) => p.id !== good.id)
+  await ok('POST', `/periods/${wrong.id}/refund`, { amount: 500, date: today, after: 'continue' })
+  const before = await ok('GET', '/stats')
+  const month = Number(today.slice(5, 7)) - 1
+
+  // The word must be typed; anything else is refused and nothing is removed.
+  for (const confirm of [undefined, '', 'yes', 'delet']) {
+    assert.equal((await call('DELETE', `/periods/${wrong.id}`, { confirm })).status, 400)
+  }
+  assert.equal((await ok('GET', `/members/${d.member.id}`)).periods.length, 2)
+
+  const after = await ok('DELETE', `/periods/${wrong.id}`, { confirm: ' Delete ' })
+  assert.equal(after.deletedPayments, 2) // the payment and the refund
+  assert.deepEqual(after.periods.map((p) => p.id), [good.id])
+  assert.deepEqual(after.payments.map((p) => p.amount), [1000]) // the first membership's payment is untouched
+  assert.equal(after.summary.renewalDate, good.renewalDate)
+  assert.equal(after.summary.balance, 0)
+  // The deleted money is gone from the dashboard too: 2000 received and 500 refunded.
+  const stats = await ok('GET', '/stats')
+  assert.equal(before.months[month].collected - stats.months[month].collected, 2000)
+  assert.equal(before.months[month].refunded - stats.months[month].refunded, 500)
+  assert.equal((await call('DELETE', `/periods/${wrong.id}`, { confirm: 'delete' })).status, 404)
+
+  // It also works after cancelling, and for a member's only membership.
+  const only = await admit('Only Omar', { fee: 500 })
+  await ok('POST', `/periods/${only.periods[0].id}/cancel`, {})
+  const gone = await ok('DELETE', `/periods/${only.periods[0].id}`, { confirm: 'delete' })
+  assert.deepEqual([gone.periods.length, gone.summary.status, gone.member.name], [0, 'none', 'Only Omar'])
+})
+
 test('members can be deleted only when they have no payments', async () => {
   const paid = await admit('Keep Kiran', { paid: 500 })
   assert.equal((await call('DELETE', `/members/${paid.member.id}`)).status, 409)

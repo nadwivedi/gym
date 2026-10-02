@@ -8,7 +8,7 @@ import { dueInfo, fmtDate, money } from '../format.js'
 import { EditMemberSheet, HideSheet } from '../sheets/MemberSheets.jsx'
 import PaymentEditSheet from '../sheets/PaymentEditSheet.jsx'
 import PaymentSheet from '../sheets/PaymentSheet.jsx'
-import { EditPeriodSheet, RefundSheet, WaiveSheet } from '../sheets/PeriodSheets.jsx'
+import { DeletePeriodSheet, EditPeriodSheet, RefundSheet, WaiveSheet } from '../sheets/PeriodSheets.jsx'
 import RenewSheet from '../sheets/RenewSheet.jsx'
 
 const STATE = {
@@ -212,28 +212,33 @@ export default function MemberProfile() {
                   <span>{fmtDate(p.promisedDate)}</span>
                 </div>
               )}
-              {p.status !== 'cancelled' && (
-                <div className="row-actions">
-                  <button className="btn small" onClick={() => setSheet({ type: 'editPeriod', period: p })}>
-                    Change dates / fee
-                  </button>
-                  {p.netPaid > 0 && (
-                    <button className="btn small" onClick={() => setSheet({ type: 'refund', period: p })}>
-                      Refund
+              <div className="row-actions">
+                {p.status !== 'cancelled' && (
+                  <>
+                    <button className="btn small" onClick={() => setSheet({ type: 'editPeriod', period: p })}>
+                      Change dates / fee
                     </button>
-                  )}
-                  {p.balance > 0 && (
-                    <button className="btn small" onClick={() => setSheet({ type: 'waive', period: p })}>
-                      Waive balance
-                    </button>
-                  )}
-                  {p.netPaid <= 0 && (
-                    <button className="btn small danger" disabled={action.busy} onClick={() => cancelPeriod(p)}>
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              )}
+                    {p.netPaid > 0 && (
+                      <button className="btn small" onClick={() => setSheet({ type: 'refund', period: p })}>
+                        Refund
+                      </button>
+                    )}
+                    {p.balance > 0 && (
+                      <button className="btn small" onClick={() => setSheet({ type: 'waive', period: p })}>
+                        Waive balance
+                      </button>
+                    )}
+                    {p.netPaid <= 0 && (
+                      <button className="btn small danger" disabled={action.busy} onClick={() => cancelPeriod(p)}>
+                        Cancel
+                      </button>
+                    )}
+                  </>
+                )}
+                <button className="btn small danger" aria-label={`Delete membership ${p.planName} from ${fmtDate(p.startDate)}`} onClick={() => setSheet({ type: 'deletePeriod', period: p })}>
+                  Delete
+                </button>
+              </div>
               {p.history?.length > 0 && (
                 <details className="log">
                   <summary>Changes ({p.history.length})</summary>
@@ -284,6 +289,9 @@ export default function MemberProfile() {
       {sheet?.type === 'editPeriod' && <EditPeriodSheet period={sheet.period} onClose={close} onDone={done} />}
       {sheet?.type === 'refund' && <RefundSheet period={sheet.period} onClose={close} onDone={done} />}
       {sheet?.type === 'waive' && <WaiveSheet period={sheet.period} onClose={close} onDone={done} />}
+      {sheet?.type === 'deletePeriod' && (
+        <DeletePeriodSheet period={sheet.period} payments={payments.filter((x) => x.periodId === sheet.period.id)} onClose={close} onDone={done} />
+      )}
       {sheet?.type === 'editPayment' && <PaymentEditSheet payment={sheet.payment} onClose={close} onDone={done} />}
     </>
   )

@@ -446,6 +446,16 @@ export function api() {
     res.json(await memberDetail(period.memberId, todayStr()))
   })
 
+  // A membership entered by mistake: remove it completely, with every payment and refund recorded
+  // on it. This is the one place money records are really deleted, so the word "delete" must be sent.
+  r.delete('/periods/:id', async (req, res) => {
+    const period = await getPeriod(req.params.id)
+    if (String(req.body?.confirm ?? '').trim().toLowerCase() !== 'delete') fail(400, 'Type delete to confirm')
+    const removed = await Payment.deleteMany({ periodId: period._id })
+    await period.deleteOne()
+    res.json({ ...(await memberDetail(period.memberId, todayStr())), deletedPayments: removed.deletedCount })
+  })
+
   r.post('/periods/:id/cancel', async (req, res) => {
     const period = await getPeriod(req.params.id)
     if (period.status === 'cancelled') fail(409, 'This membership is already cancelled')

@@ -7,10 +7,11 @@ const FILTERS = [
   // All means everyone, hidden members too, so no name can go missing from the full list.
   { key: 'all', label: 'All', test: () => true },
   { key: 'active', label: 'Active', test: (s) => !s.hidden && s.status === 'active' },
-  { key: 'expired', label: 'Expired', test: (s) => !s.hidden && s.status === 'expired' },
-  { key: 'dues', label: 'Dues pending', test: (s) => s.balance > 0 },
+  // counted: the button also shows how many members are in it, e.g. "Expired (3)".
+  { key: 'expired', label: 'Expired', counted: true, test: (s) => !s.hidden && s.status === 'expired' },
+  { key: 'dues', label: 'Dues pending', counted: true, test: (s) => s.balance > 0 },
+  { key: 'hidden', label: 'Hidden', counted: true, test: (s) => s.hidden },
   { key: 'upcoming', label: 'Not started', test: (s) => !s.hidden && s.status === 'upcoming' },
-  { key: 'hidden', label: 'Hidden', test: (s) => s.hidden },
 ]
 
 export default function Members() {
@@ -49,6 +50,7 @@ export default function Members() {
             {FILTERS.map((f) => (
               <button key={f.key} className={`chip ${filter === f.key ? 'active' : ''}`} onClick={() => setFilter(f.key)}>
                 {f.label}
+                {f.counted && data ? ` (${data.filter(f.test).length})` : ''}
               </button>
             ))}
           </div>

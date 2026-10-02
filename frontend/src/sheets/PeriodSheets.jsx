@@ -186,3 +186,61 @@ export function WaiveSheet({ period, onClose, onDone }) {
     </Sheet>
   )
 }
+
+// Remove a membership that was created by mistake, with all its payments. Nothing can bring it
+// back, so the owner has to type the word "delete" before the button works.
+export function DeletePeriodSheet({ period, payments, onClose, onDone }) {
+  const [word, setWord] = useState('')
+  const { busy, error, run } = useAction()
+  const confirmed = word.trim().toLowerCase() === 'delete'
+  const paid = payments.filter((x) => x.type !== 'refund')
+  const refunds = payments.filter((x) => x.type === 'refund')
+  const sum = (list) => list.reduce((total, x) => total + x.amount, 0)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    const saved = await run(() => api(`/periods/${period.id}`, { method: 'DELETE', body: { confirm: word } }))
+    if (saved) onDone(saved)
+  }
+
+  return (
+    <Sheet title="Delete membership" onClose={onClose}>
+      <form className="form" onSubmit={submit}>
+        <div className="box error">
+          <b>
+            {period.planName}, {fmtDate(period.startDate)} → {fmtDate(period.renewalDate)}
+          </b>
+          <br />
+          This membership will be removed completely and cannot be brought back.
+        </div>
+        {payments.length > 0 ? (
+          <div className="box warn">
+            Also deleted with it:
+            <ul className="plain">
+              {paid.length > 0 && (
+                <li>
+                  {paid.length} payment{paid.length === 1 ? '' : 's'} totalling {money(sum(paid))}
+                </li>
+              )}
+              {refunds.length > 0 && (
+                <li>
+                  {refunds.length} refund{refunds.length === 1 ? '' : 's'} totalling {money(sum(refunds))}
+                </li>
+              )}
+            </ul>
+            Your collection for those dates will go down by the same amount.
+          </div>
+        ) : (
+          <p className="hint">No payments are recorded on this membership.</p>
+        )}
+        <Field label="Type delete to confirm">
+          <input value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck="false" placeholder="delete" />
+        </Field>
+        <ErrorBox error={error} />
+        <button className="btn danger block" disabled={busy || !confirmed}>
+          {busy ? 'Deleting…' : 'Delete membership'}
+        </button>
+      </form>
+    </Sheet>
+  )
+}
