@@ -371,8 +371,43 @@ button.card {
   border-top: 1px solid var(--border);
 }
 
+/* Renew, Call, WhatsApp and Hide always share one row, even on a narrow phone. */
 .member-body .row-actions {
   margin-top: 0;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.member-body .row-actions .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 400px) {
+  .member-body {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .member-body .row-actions .btn {
+    padding: 0 6px;
+    font-size: 0.76rem;
+    gap: 4px;
+  }
+
+  .member-body .row-actions .icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* Very small phones: the words alone fit, the icons do not. */
+@media (max-width: 345px) {
+  .member-body .row-actions .icon {
+    display: none;
+  }
 }
 
 .member-body .note {

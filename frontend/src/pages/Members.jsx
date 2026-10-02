@@ -4,7 +4,8 @@ import { Loading, MemberRow } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 
 const FILTERS = [
-  { key: 'all', label: 'All', test: (s) => !s.hidden },
+  // All means everyone, hidden members too, so no name can go missing from the full list.
+  { key: 'all', label: 'All', test: () => true },
   { key: 'active', label: 'Active', test: (s) => !s.hidden && s.status === 'active' },
   { key: 'expired', label: 'Expired', test: (s) => !s.hidden && s.status === 'expired' },
   { key: 'dues', label: 'Dues pending', test: (s) => s.balance > 0 },
