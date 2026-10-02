@@ -27,7 +27,7 @@ export default function Renewals() {
     return (
       <>
         <header className="topbar">
-          <h1>{settings.gymName}</h1>
+          <h1>Renewals</h1>
         </header>
         <div className="page">
           <Loading error={error} />
@@ -52,8 +52,8 @@ export default function Renewals() {
     <>
       <header className="topbar">
         <h1>
-          {settings.gymName}
-          <span className="sub">Renewals · {fmtDate(today)}</span>
+          Renewals
+          <span className="sub">{fmtDate(today)}</span>
         </h1>
       </header>
       <div className="page">

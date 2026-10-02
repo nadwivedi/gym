@@ -3,6 +3,7 @@ import { BrowserRouter, NavLink, Navigate, Route, Routes } from 'react-router-do
 import { getToken, setToken, useLoad } from './api.js'
 import { Icon, Loading } from './components/ui.jsx'
 import { AppContext } from './context.js'
+import Dashboard from './pages/Dashboard.jsx'
 import Login from './pages/Login.jsx'
 import MemberProfile from './pages/MemberProfile.jsx'
 import Members from './pages/Members.jsx'
@@ -55,7 +56,8 @@ function Shell({ onLock }) {
       <BrowserRouter>
         <div className="app">
           <Routes>
-            <Route path="/" element={<Renewals />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/renewals" element={<Renewals />} />
             <Route path="/members" element={<Members />} />
             <Route path="/members/:id" element={<MemberProfile />} />
             <Route path="/payments" element={<Payments />} />
@@ -66,25 +68,25 @@ function Shell({ onLock }) {
         <nav className="nav">
           <div className="nav-inner">
             <NavLink to="/" end>
+              <Icon name="home" />
+              Dashboard
+            </NavLink>
+            <NavLink to="/renewals">
               <Icon name="calendar" />
               Renewals
-            </NavLink>
-            <NavLink to="/members">
-              <Icon name="users" />
-              Members
             </NavLink>
             <button className="add" aria-label="New admission" onClick={openAdd}>
               <span className="plus">
                 <Icon name="plus" />
               </span>
             </button>
+            <NavLink to="/members">
+              <Icon name="users" />
+              Members
+            </NavLink>
             <NavLink to="/payments">
               <Icon name="wallet" />
               Payments
-            </NavLink>
-            <NavLink to="/more">
-              <Icon name="menu" />
-              More
             </NavLink>
           </div>
         </nav>

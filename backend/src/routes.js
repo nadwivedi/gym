@@ -4,6 +4,7 @@ import { checkPin, hashPin, makeToken, newSecret, verifyToken } from './auth.js'
 import { toCsv } from './csv.js'
 import { Member, Payment, Period, Plan, getSettings, logEntry, nextMemberNo, out } from './db.js'
 import { loadSummaries, memberDetail, moneyFor } from './service.js'
+import { buildYearStats } from './stats.js'
 import { dateOf, fail, idOf, intOf, moneyOf, phoneOf, str } from './validate.js'
 
 const MAX_PIN_FAILS = 5
@@ -201,6 +202,35 @@ export function api() {
         duesCount: dues.length,
         duesTotal: dues.reduce((sum, s) => sum + s.balance, 0),
       },
+    })
+  })
+
+  // Numbers behind the dashboard charts: one calendar year, month by month.
+  r.get('/stats', async (req, res) => {
+    const today = todayStr()
+    const thisYear = Number(today.slice(0, 4))
+    const year = req.query.year === undefined ? thisYear : intOf(req.query.year, 'Year', 2000, 2100)
+    const [payments, periods, rows, firstPayment, firstPeriod] = await Promise.all([
+      Payment.find({ voided: { $ne: true }, date: { $gte: `${year}-01-01`, $lt: `${year + 1}-01-01` } }).lean(),
+      Period.find({ status: { $ne: 'cancelled' } }, { memberId: 1, startDate: 1, renewalDate: 1, kind: 1 }).lean(),
+      loadSummaries(today),
+      Payment.findOne({ voided: { $ne: true } }).sort({ date: 1 }).lean(),
+      Period.findOne({ status: { $ne: 'cancelled' } }).sort({ startDate: 1 }).lean(),
+    ])
+    const stats = buildYearStats({ year, today, payments, periods })
+    const active = rows.filter((s) => s.status === 'active' && !s.hidden).length
+    // The current month shows the same count as the "active members" tile.
+    if (year === thisYear) stats.months[Number(today.slice(5, 7)) - 1].active = active
+    const dues = rows.filter((s) => s.balance > 0)
+    const firstYear = Math.min(thisYear, ...[firstPayment?.date, firstPeriod?.startDate].filter(Boolean).map((d) => Number(d.slice(0, 4))))
+    res.json({
+      year,
+      today,
+      firstYear,
+      lastYear: thisYear,
+      ...stats,
+      members: { active, total: rows.length },
+      dues: { count: dues.length, total: Math.round(dues.reduce((sum, s) => sum + s.balance, 0) * 100) / 100 },
     })
   })
 

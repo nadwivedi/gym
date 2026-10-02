@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { api, download, setToken, useAction } from '../api.js'
 import { MoneyInput } from '../components/fields.jsx'
-import { ErrorBox, Field } from '../components/ui.jsx'
+import { Link } from 'react-router-dom'
+import { ErrorBox, Field, Icon } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 
 export default function More({ onLock }) {
@@ -11,7 +12,10 @@ export default function More({ onLock }) {
   return (
     <>
       <header className="topbar">
-        <h1>More</h1>
+        <Link to="/" className="btn small" aria-label="Back to dashboard">
+          <Icon name="back" />
+        </Link>
+        <h1>Settings</h1>
       </header>
       <div className="page">
         <div className="section-title">Plans and prices</div>

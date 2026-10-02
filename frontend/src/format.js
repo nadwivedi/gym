@@ -1,4 +1,12 @@
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+export const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+// Short rupee amounts for chart axes: ₹950, ₹12.5K, ₹1.2L, ₹3Cr
+export function moneyShort(n) {
+  const abs = Math.abs(n)
+  const [div, unit] = abs >= 1e7 ? [1e7, 'Cr'] : abs >= 1e5 ? [1e5, 'L'] : abs >= 1e3 ? [1e3, 'K'] : [1, '']
+  return `${n < 0 ? '−' : ''}₹${Number((abs / div).toFixed(abs / div >= 100 ? 0 : 1))}${unit}`
+}
 
 export function fmtDate(s) {
   if (!s) return '—'

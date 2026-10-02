@@ -264,6 +264,34 @@ test('bad input is rejected', async () => {
   assert.equal((await call('POST', '/payments', { periodId: { $ne: null }, amount: 5, date: today })).status, 400)
 })
 
+test('dashboard stats follow payments and refunds', async () => {
+  const month = Number(today.slice(5, 7)) - 1
+  const before = await ok('GET', '/stats')
+  assert.equal(before.year, Number(today.slice(0, 4)))
+  assert.equal(before.months.length, 12)
+  assert.equal(before.members.active, (await ok('GET', '/dashboard')).stats.active)
+  assert.equal(before.months[month].active, before.members.active)
+
+  const d = await admit('Stats Sita', { fee: 2000 })
+  await ok('POST', '/payments', { periodId: d.periods[0].id, amount: 777, date: today, mode: 'UPI' })
+  await ok('POST', `/periods/${d.periods[0].id}/refund`, { amount: 100, date: today, after: 'continue' })
+  const after = await ok('GET', '/stats')
+  const [b, a] = [before.months[month], after.months[month]]
+  assert.equal(a.collected - b.collected, 777)
+  assert.equal(a.refunded - b.refunded, 100)
+  assert.equal(a.net - b.net, 677)
+  assert.equal(a.count - b.count, 1)
+  assert.equal(a.byMode.UPI - (b.byMode.UPI || 0), 777)
+  assert.equal(a.admissions - b.admissions, 1)
+  assert.equal(after.total.net - before.total.net, 677)
+  assert.equal(after.members.active - before.members.active, 1)
+  assert.equal(after.dues.total - before.dues.total, 1223)
+
+  const lastYear = await ok('GET', `/stats?year=${before.year - 1}`)
+  assert.equal(lastYear.total.collected, 0)
+  assert.equal((await call('GET', '/stats?year=abc')).status, 400)
+})
+
 test('exports and settings', async () => {
   const csv = await ok('GET', '/export/members.csv')
   assert.match(csv, /No,Name,Phone/)
