@@ -37,6 +37,15 @@ export const promisedBody = (pay, total) => (total - (Number(pay.amount) || 0) >
 // The optional personal details -> what the member API expects. Age is sent only without a date of birth.
 export const personalBody = (p) => ({ address: p.address, dob: p.dob, age: p.dob ? '' : p.age })
 
+// Login mobile box: digits only, at most 10. A pasted "+91 98765 43210" or "098765 43210" keeps the 10-digit number.
+export function mobileDigits(v) {
+  // Only the exact pasted forms lose their prefix, so an extra digit typed after a number starting with 91 is just ignored.
+  let d = v.replace(/\D/g, '')
+  if (d.length === 12 && d.startsWith('91')) d = d.slice(2)
+  else if (d.length === 11 && d.startsWith('0')) d = d.slice(1)
+  return d.slice(0, 10)
+}
+
 export const telLink = (phone) => `tel:${phone}`
 
 export function waLink(phone, countryCode, text) {

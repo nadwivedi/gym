@@ -4,19 +4,23 @@ import { Link } from 'react-router-dom'
 import { MoneyInput } from '../components/fields.jsx'
 import { Badge, ErrorBox, Field, Group, Icon, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
-import { money } from '../format.js'
+import { mobileDigits, money } from '../format.js'
 
-export default function More({ onLock }) {
+export default function More({ onLogout }) {
   const { today } = useApp()
   const exp = useAction()
   const get = (path, name) => exp.run(() => download(path, name).then(() => true))
   return (
     <>
       <header className="topbar">
-        <Link to="/" className="btn small" aria-label="Back to dashboard">
+        <Link to="/dashboard" className="btn small" aria-label="Back to dashboard">
           <Icon name="back" />
         </Link>
         <h1>Settings</h1>
+        <button className="btn small" onClick={onLogout}>
+          <Icon name="logout" />
+          Log out
+        </button>
       </header>
       <div className="page">
         <Link to="/whatsapp" className="card row">
@@ -55,10 +59,11 @@ export default function More({ onLock }) {
           <ErrorBox error={exp.error} />
         </div>
 
-        <div className="section-title">Security</div>
-        <ChangePin />
-        <button className="btn block" onClick={onLock}>
-          Lock app
+        <div className="section-title">Login details</div>
+        <LoginDetails />
+        <button className="btn danger block" onClick={onLogout}>
+          <Icon name="logout" />
+          Log out
         </button>
       </div>
     </>
@@ -270,38 +275,54 @@ function Settings() {
   )
 }
 
-function ChangePin() {
-  const [oldPin, setOldPin] = useState('')
-  const [newPin, setNewPin] = useState('')
+// Login mobile number and password. Saving signs every other device out.
+function LoginDetails() {
+  const { settings, reloadApp } = useApp()
+  const [mobile, setMobile] = useState(settings.loginMobile || '')
+  const [newPassword, setNewPassword] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [saved, setSaved] = useState(false)
   const { busy, error, run } = useAction()
-  const pinProps = { type: 'password', inputMode: 'numeric', maxLength: 8, autoComplete: 'off', required: true }
 
   const save = async (e) => {
     e.preventDefault()
     setSaved(false)
-    const res = await run(() => api('/auth/change-pin', { method: 'POST', body: { oldPin, newPin } }))
+    const res = await run(() => api('/auth/change-login', { method: 'POST', body: { currentPassword, mobile, newPassword } }))
     if (!res) return
     setToken(res.token)
-    setOldPin('')
-    setNewPin('')
+    setMobile(res.loginMobile)
+    setNewPassword('')
+    setCurrentPassword('')
     setSaved(true)
+    reloadApp()
   }
 
   return (
     <form className="card form" onSubmit={save}>
       <div className="field-row">
-        <Field label="Current PIN">
-          <input {...pinProps} value={oldPin} onChange={(e) => setOldPin(e.target.value.replace(/\D/g, ''))} />
+        <Field label="Login mobile number">
+          <input
+            type="tel"
+            inputMode="numeric"
+            pattern="\d{10}"
+            title="Enter a 10-digit mobile number"
+            autoComplete="username"
+            required
+            value={mobile}
+            onChange={(e) => setMobile(mobileDigits(e.target.value))}
+          />
         </Field>
-        <Field label="New PIN (4 to 8 digits)">
-          <input {...pinProps} value={newPin} onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} />
+        <Field label="New password">
+          <input type="password" minLength={6} autoComplete="new-password" placeholder="Leave empty to keep" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
         </Field>
       </div>
+      <Field label="Current password (to confirm)">
+        <input type="password" autoComplete="current-password" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+      </Field>
       <ErrorBox error={error} />
-      {saved && <div className="box info">PIN changed. Other devices must enter the new PIN.</div>}
-      <button className="btn block" disabled={busy || newPin.length < 4}>
-        Change PIN
+      {saved && <div className="box info">Login details saved. Other devices must log in again.</div>}
+      <button className="btn block" disabled={busy}>
+        {busy ? 'Saving…' : 'Save login details'}
       </button>
     </form>
   )

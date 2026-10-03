@@ -13,7 +13,9 @@ npm --prefix backend run dev        # API on http://localhost:4000
 npm --prefix frontend run dev       # app on http://localhost:5173 (also on your phone, same Wi-Fi)
 ```
 
-The first visit asks you to set a PIN. Set plan prices under **More → Plans and prices**.
+The first visit asks you to create a login (mobile number + password). Set plan prices under **More → Plans and prices**.
+
+Forgot the password? On the gym PC run `npm --prefix backend run reset-login`, then open the app and create a new login. No gym data is changed.
 
 ## Other commands
 
@@ -27,6 +29,7 @@ npm --prefix frontend run build     # build the screens; `npm --prefix backend s
 - `shared/domain.mjs`: date, renewal and balance rules used by both sides
 - `backend/src`: Express API on MongoDB (`gymsoft` database; override with `MONGO_URL`, `PORT`)
 - `frontend/src`: React screens (`pages/`) and bottom-sheet forms (`sheets/`)
+- `frontend/src/site`: public GymSolution website (`/` home, `/features`); every app page (`/dashboard`, `/members`, …) needs the login at `/login`
 
 ## WhatsApp reminders
 

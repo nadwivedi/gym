@@ -106,6 +106,11 @@ const Settings = model(
     {
       _id: String,
       gymName: { type: String, default: 'My Gym' },
+      // Owner login: 10-digit mobile number + password.
+      loginMobile: { type: String, default: '' },
+      passHash: { type: String, default: '' },
+      passSalt: { type: String, default: '' },
+      // Old PIN login, cleared when the gym creates its mobile + password login.
       pinHash: { type: String, default: '' },
       pinSalt: { type: String, default: '' },
       secret: String,

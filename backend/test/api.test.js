@@ -4,7 +4,8 @@ import { after, before, test } from 'node:test'
 import mongoose from 'mongoose'
 import { addDays, addMonths, todayStr } from '../../shared/domain.mjs'
 import { createApp } from '../src/app.js'
-import { seedDefaults } from '../src/db.js'
+import { hashPassword } from '../src/auth.js'
+import { getSettings, seedDefaults } from '../src/db.js'
 
 const TEST_DB = process.env.MONGO_TEST_URL || 'mongodb://127.0.0.1:27017/gymsoft_test'
 const today = todayStr()
@@ -54,14 +55,28 @@ after(async () => {
   await mongoose.disconnect()
 })
 
-test('PIN: setup, wrong PIN, login, and locked routes', async () => {
+test('login: first mobile + password (old PIN dropped), wrong tries, and locked routes', async () => {
+  // A gym from before mobile + password logins has only a PIN.
+  const s = await getSettings()
+  const { salt, hash } = hashPassword('1234')
+  Object.assign(s, { pinSalt: salt, pinHash: hash, gymName: 'Test Gym' })
+  await s.save()
+  assert.deepEqual(await ok('GET', '/auth/status'), { accountSet: false, gymName: 'Test Gym' })
   assert.equal((await call('GET', '/members')).status, 401)
-  assert.equal((await call('POST', '/auth/setup', { pin: '12' })).status, 400)
-  token = (await ok('POST', '/auth/setup', { pin: '1234', gymName: 'Test Gym' })).token
-  assert.equal((await call('POST', '/auth/setup', { pin: '9999' })).status, 409)
-  assert.equal((await call('POST', '/auth/login', { pin: '0000' })).status, 401)
-  token = (await ok('POST', '/auth/login', { pin: '1234' })).token
+
+  const account = { mobile: '+91 98765 43210', password: 'secret12' }
+  assert.equal((await call('POST', '/auth/setup', { ...account, password: 'abc' })).status, 400)
+  assert.equal((await call('POST', '/auth/setup', { ...account, mobile: '12345' })).status, 400)
+  token = (await ok('POST', '/auth/setup', account)).token
+  assert.equal((await getSettings()).pinHash, '')
+  assert.deepEqual(await ok('GET', '/auth/status'), { accountSet: true, gymName: 'Test Gym' })
+  assert.equal((await call('POST', '/auth/setup', account)).status, 409)
+
+  assert.equal((await call('POST', '/auth/login', { mobile: '9876543210', password: 'wrong-pass' })).status, 401)
+  assert.equal((await call('POST', '/auth/login', { mobile: '9876500000', password: 'secret12' })).status, 401)
+  token = (await ok('POST', '/auth/login', { mobile: '09876543210', password: 'secret12' })).token
   const boot = await ok('GET', '/bootstrap')
+  assert.equal(boot.settings.loginMobile, '9876543210')
   plans = boot.plans
   assert.equal(boot.settings.gymName, 'Test Gym')
   assert.equal(plans.length, 4)
@@ -438,9 +453,14 @@ test('exports and settings', async () => {
   assert.deepEqual([s.admissionFee, s.overdueDays], [300, 20])
   const p = await ok('PATCH', `/plans/${plan(1).id}`, { price: 1500 })
   assert.equal(p.price, 1500)
-  // Changing PIN signs the old token out.
+  // Changing the login signs the old token out.
   const oldToken = token
-  token = (await ok('POST', '/auth/change-pin', { oldPin: '1234', newPin: '4321' })).token
+  assert.equal((await call('POST', '/auth/change-login', { currentPassword: 'nope', mobile: '9876543210' })).status, 400)
+  const changed = await ok('POST', '/auth/change-login', { currentPassword: 'secret12', mobile: '9123456780', newPassword: 'newpass99' })
+  assert.equal(changed.loginMobile, '9123456780')
+  token = changed.token
+  assert.equal((await call('POST', '/auth/login', { mobile: '9123456780', password: 'secret12' })).status, 401)
+  await ok('POST', '/auth/login', { mobile: '9123456780', password: 'newpass99' })
   const saved = token
   token = oldToken
   assert.equal((await call('GET', '/members')).status, 401)

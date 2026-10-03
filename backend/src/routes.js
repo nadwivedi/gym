@@ -1,6 +1,6 @@
 import express from 'express'
 import { PAYMENT_MODES, addMonths, memberAge, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
-import { checkPin, hashPin, makeToken, newSecret, verifyToken } from './auth.js'
+import { checkPassword, hashPassword, makeToken, newSecret, verifyToken } from './auth.js'
 import { toCsv } from './csv.js'
 import { Expense, ExpenseCategory, Member, Payment, Period, Plan, getSettings, logEntry, nextMemberNo, out } from './db.js'
 import { loadSummaries, memberDetail, moneyFor } from './service.js'
@@ -8,10 +8,25 @@ import { buildYearStats } from './stats.js'
 import { dateOf, fail, idOf, intOf, moneyOf, phoneOf, str } from './validate.js'
 import { whatsappRoutes } from './whatsapp/routes.js'
 
-const MAX_PIN_FAILS = 5
+const MAX_LOGIN_FAILS = 5
 const LOCK_MS = 60000
 
-const pinOf = (v) => (typeof v === 'string' && /^\d{4,8}$/.test(v) ? v : fail(400, 'PIN must be 4 to 8 digits'))
+const passwordOf = (v) =>
+  typeof v === 'string' && v.length >= 6 && v.length <= 100 ? v : fail(400, 'Password must be at least 6 characters')
+
+// "+91 98765 43210", "098765 43210" and "9876543210" are all the same login.
+function loginMobileOf(v) {
+  let digits = String(v ?? '').replace(/[^\d]/g, '')
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2)
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1)
+  return digits.length === 10 ? digits : fail(400, 'Enter a 10-digit mobile number')
+}
+
+function setPassword(s, password) {
+  const { salt, hash } = hashPassword(password)
+  s.passSalt = salt
+  s.passHash = hash
+}
 const modeOf = (v) => (PAYMENT_MODES.includes(v) ? v : 'Cash')
 const show = (v) => (v === '' || v == null ? 'none' : v)
 
@@ -24,6 +39,7 @@ function paidDateOf(v, name) {
 
 const publicSettings = (s) => ({
   gymName: s.gymName,
+  loginMobile: s.loginMobile,
   admissionFee: s.admissionFee,
   overdueDays: s.overdueDays,
   countryCode: s.countryCode,
@@ -141,36 +157,43 @@ function buildPayment(body, total) {
 
 export function api() {
   const r = express.Router()
-  let pinFails = 0
+  // Wrong passwords lock the login for a minute after a few tries.
+  let fails = 0
   let lockedUntil = 0
+  const checkNotLocked = () => Date.now() < lockedUntil && fail(429, 'Too many wrong tries. Wait one minute and try again.')
+  const wrongTry = (message) => {
+    if (++fails >= MAX_LOGIN_FAILS) {
+      fails = 0
+      lockedUntil = Date.now() + LOCK_MS
+    }
+    fail(401, message)
+  }
 
   r.get('/auth/status', async (req, res) => {
     const s = await getSettings()
-    res.json({ pinSet: !!s.pinHash, gymName: s.gymName })
+    res.json({ accountSet: !!s.passHash, gymName: s.gymName })
   })
 
+  // First visit: the mobile number and password typed become the login. A gym's old PIN is dropped.
   r.post('/auth/setup', async (req, res) => {
     const s = await getSettings()
-    if (s.pinHash) fail(409, 'A PIN is already set')
-    const { salt, hash } = hashPin(pinOf(req.body?.pin))
-    s.pinSalt = salt
-    s.pinHash = hash
-    s.gymName = str(req.body?.gymName, 60) || s.gymName
+    if (s.passHash) fail(409, 'An account already exists. Please log in.')
+    s.loginMobile = loginMobileOf(req.body?.mobile)
+    setPassword(s, passwordOf(req.body?.password))
+    s.pinHash = ''
+    s.pinSalt = ''
     await s.save()
     res.json({ token: makeToken(s.secret) })
   })
 
   r.post('/auth/login', async (req, res) => {
-    if (Date.now() < lockedUntil) fail(429, 'Too many wrong tries. Wait one minute and try again.')
+    checkNotLocked()
     const s = await getSettings()
-    if (!checkPin(String(req.body?.pin ?? ''), s.pinSalt, s.pinHash)) {
-      if (++pinFails >= MAX_PIN_FAILS) {
-        pinFails = 0
-        lockedUntil = Date.now() + LOCK_MS
-      }
-      fail(401, 'Wrong PIN')
+    const mobile = loginMobileOf(req.body?.mobile)
+    if (mobile !== s.loginMobile || !checkPassword(String(req.body?.password ?? ''), s.passSalt, s.passHash)) {
+      wrongTry('Wrong mobile number or password')
     }
-    pinFails = 0
+    fails = 0
     res.json({ token: makeToken(s.secret) })
   })
 
@@ -178,20 +201,20 @@ export function api() {
   r.use(async (req, res, next) => {
     const s = await getSettings()
     const token = (req.headers.authorization || '').replace(/^Bearer /, '')
-    if (!s.pinHash || !verifyToken(s.secret, token)) fail(401, 'Please enter your PIN')
+    if (!s.passHash || !verifyToken(s.secret, token)) fail(401, 'Please log in')
     req.settings = s
     next()
   })
 
-  r.post('/auth/change-pin', async (req, res) => {
+  // Change the login mobile number and/or password. Signs every other device out.
+  r.post('/auth/change-login', async (req, res) => {
     const s = req.settings
-    if (!checkPin(String(req.body?.oldPin ?? ''), s.pinSalt, s.pinHash)) fail(400, 'Current PIN is wrong')
-    const { salt, hash } = hashPin(pinOf(req.body?.newPin))
-    s.pinSalt = salt
-    s.pinHash = hash
-    s.secret = newSecret() // signs every other device out
+    if (!checkPassword(String(req.body?.currentPassword ?? ''), s.passSalt, s.passHash)) fail(400, 'Current password is wrong')
+    s.loginMobile = loginMobileOf(req.body?.mobile)
+    if (req.body?.newPassword) setPassword(s, passwordOf(req.body.newPassword))
+    s.secret = newSecret()
     await s.save()
-    res.json({ token: makeToken(s.secret) })
+    res.json({ token: makeToken(s.secret), loginMobile: s.loginMobile })
   })
 
   r.get('/bootstrap', async (req, res) => {

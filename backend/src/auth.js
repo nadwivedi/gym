@@ -2,13 +2,14 @@ import crypto from 'node:crypto'
 
 const TOKEN_DAYS = 30
 
-export function hashPin(pin, salt = crypto.randomBytes(16).toString('hex')) {
-  return { salt, hash: crypto.scryptSync(pin, salt, 32).toString('hex') }
+// Used for the login password, and for the old PIN while a gym moves off it.
+export function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  return { salt, hash: crypto.scryptSync(password, salt, 32).toString('hex') }
 }
 
-export function checkPin(pin, salt, hash) {
+export function checkPassword(password, salt, hash) {
   if (!salt || !hash) return false
-  const a = Buffer.from(hashPin(pin, salt).hash, 'hex')
+  const a = Buffer.from(hashPassword(password, salt).hash, 'hex')
   const b = Buffer.from(hash, 'hex')
   return a.length === b.length && crypto.timingSafeEqual(a, b)
 }

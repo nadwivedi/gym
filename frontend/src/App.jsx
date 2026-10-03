@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BrowserRouter, NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { getToken, setToken, useLoad } from './api.js'
 import { Icon, Loading } from './components/ui.jsx'
 import { AppContext } from './context.js'
@@ -12,6 +12,8 @@ import More from './pages/More.jsx'
 import Payments from './pages/Payments.jsx'
 import Renewals from './pages/Renewals.jsx'
 import WhatsApp from './pages/WhatsApp.jsx'
+import Features from './site/Features.jsx'
+import Home from './site/Home.jsx'
 import AddMemberSheet from './sheets/AddMemberSheet.jsx'
 
 export default function App() {
@@ -23,18 +25,37 @@ export default function App() {
     return () => window.removeEventListener('gym-logout', onLogout)
   }, [])
 
-  if (!authed) return <Login onDone={() => setAuthed(true)} />
+  // A fresh load of the home page: changing route and sign-in state together would land on the login screen instead.
+  const logout = useCallback(() => {
+    setToken('')
+    window.location.replace('/')
+  }, [])
+
   return (
-    <Shell
-      onLock={() => {
-        setToken('')
-        setAuthed(false)
-      }}
-    />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home authed={authed} />} />
+        <Route path="/features" element={<Features authed={authed} />} />
+        <Route path="/login" element={<LoginRoute authed={authed} onDone={() => setAuthed(true)} />} />
+        <Route path="*" element={authed ? <Shell onLogout={logout} /> : <ToLogin />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
-function Shell({ onLock }) {
+// Any app page opened while locked goes to the login, then back to that page.
+function ToLogin() {
+  const location = useLocation()
+  return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
+}
+
+function LoginRoute({ authed, onDone }) {
+  const location = useLocation()
+  if (authed) return <Navigate to={location.state?.from || '/dashboard'} replace />
+  return <Login onDone={onDone} />
+}
+
+function Shell({ onLogout }) {
   const boot = useLoad('/bootstrap')
   const [adding, setAdding] = useState(false)
   const openAdd = useCallback(() => setAdding(true), [])
@@ -55,23 +76,23 @@ function Shell({ onLock }) {
   }
   return (
     <AppContext.Provider value={{ ...boot.data, reloadApp: boot.reload, openAdd }}>
-      <BrowserRouter>
+      <>
         <div className="app">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/renewals" element={<Renewals />} />
             <Route path="/members" element={<Members />} />
             <Route path="/members/:id" element={<MemberProfile />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/expenses" element={<Expenses />} />
-            <Route path="/more" element={<More onLock={onLock} />} />
+            <Route path="/more" element={<More onLogout={onLogout} />} />
             <Route path="/whatsapp" element={<WhatsApp />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
         <nav className="nav">
           <div className="nav-inner">
-            <NavLink to="/" end>
+            <NavLink to="/dashboard">
               <Icon name="home" />
               Dashboard
             </NavLink>
@@ -94,7 +115,7 @@ function Shell({ onLock }) {
           </div>
         </nav>
         {adding && <AddMemberSheet onClose={closeAdd} />}
-      </BrowserRouter>
+      </>
     </AppContext.Provider>
   )
 }
