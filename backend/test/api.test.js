@@ -467,3 +467,69 @@ test('exports and settings', async () => {
   token = saved
   assert.equal((await call('GET', '/members')).status, 200)
 })
+
+test('stock: products, buy, sell, no selling more than in stock, undo, count changes, and the dashboard', async () => {
+  const monthIndex = Number(today.slice(5, 7)) - 1
+  const before = (await ok('GET', '/stats')).months[monthIndex]
+
+  const whey = await ok('POST', '/stock/products', { name: 'Whey Protein 1 kg', category: 'Protein', sellPrice: 2400, stock: 2 })
+  assert.deepEqual([whey.stock, whey.status, whey.sellPrice], [2, 'low', 2400]) // warns at 2 or fewer by default
+  assert.equal((await call('POST', '/stock/products', { name: 'whey protein 1 KG' })).status, 409)
+  assert.equal((await call('POST', '/stock/products', { name: '' })).status, 400)
+
+  await ok('POST', '/stock/moves', { type: 'buy', productId: whey.id, qty: 10, unitPrice: 1800, date: today, mode: 'UPI' })
+  const sale = await ok('POST', '/stock/moves', { type: 'sell', productId: whey.id, qty: 3, unitPrice: 2300, date: today, customer: 'Rahul' })
+  assert.equal(sale.amount, 6900)
+  const tooMany = await call('POST', '/stock/moves', { type: 'sell', productId: whey.id, qty: 10, unitPrice: 2400, date: today })
+  assert.deepEqual([tooMany.status, tooMany.data.error], [409, 'Only 9 Whey Protein 1 kg left in stock'])
+  assert.equal((await call('POST', '/stock/moves', { type: 'sell', productId: whey.id, qty: 0, unitPrice: 2400, date: today })).status, 400)
+  assert.equal((await call('POST', '/stock/moves', { type: 'sell', productId: whey.id, qty: 1, unitPrice: 2400, date: addDays(today, 1) })).status, 400)
+
+  const stock = await ok('GET', '/stock')
+  const p = stock.products.find((x) => x.id === whey.id)
+  assert.deepEqual([p.stock, p.buyPrice, p.status], [9, 1800, 'ok'])
+  assert.ok(stock.categories.includes('Creatine'))
+  assert.deepEqual(stock.totals, { units: 9, value: 21600, low: 0, out: 0 })
+
+  const month = await ok('GET', `/stock/moves?month=${today.slice(0, 7)}`)
+  assert.deepEqual(month.totals, { sold: 6900, soldUnits: 3, profit: 1500, bought: 18000, boughtUnits: 10, noCost: false })
+  assert.deepEqual(month.items.map((m) => m.type).sort(), ['adjust', 'buy', 'sell']) // opening stock is a count change
+  assert.equal(month.items[0].product, 'Whey Protein 1 kg')
+
+  // On the dashboard the sale is income and the purchase is an expense.
+  const after = (await ok('GET', '/stats')).months[monthIndex]
+  assert.equal(after.shopSales - before.shopSales, 6900)
+  assert.equal(after.net - before.net, 6900)
+  assert.equal(after.expense - before.expense, 18000)
+  assert.equal(after.byCategory['Stock bought'], 18000)
+
+  // Undo the sale: the 3 pieces come back.
+  await ok('DELETE', `/stock/moves/${sale.id}`)
+  assert.equal((await ok('GET', '/stock')).products.find((x) => x.id === whey.id).stock, 12)
+
+  // Correct the count and the price.
+  const fixed = await ok('PATCH', `/stock/products/${whey.id}`, { stock: 5, sellPrice: 2500, lowStock: 5 })
+  assert.deepEqual([fixed.stock, fixed.sellPrice, fixed.status], [5, 2500, 'low'])
+  // The purchase of 10 cannot be undone now that only 5 are left.
+  const buy = month.items.find((m) => m.type === 'buy')
+  assert.equal((await call('DELETE', `/stock/moves/${buy.id}`)).status, 409)
+  assert.match(await ok('GET', '/export/stock.csv'), /Bought,Whey Protein 1 kg,Protein,10,1800,18000,UPI/)
+
+  // Ledger: opening 2, bought 10, (sale undone), count set to 5 => balance 2, 12, 5; newest first.
+  const ledger = await ok('GET', `/stock/products/${whey.id}/ledger`)
+  assert.deepEqual(
+    ledger.rows.map((m) => [m.type, m.qty, m.balance]),
+    [['adjust', -7, 5], ['buy', 10, 12], ['adjust', 2, 2]],
+  )
+  assert.equal(ledger.rows[0].balance, ledger.product.stock)
+  assert.deepEqual(ledger.totals, { boughtUnits: 10, bought: 18000, soldUnits: 0, sold: 0, profit: 0, adjusted: -5 })
+  assert.ok(ledger.categories.includes('Protein'))
+
+  // A bill dated before the product was added still comes after the opening stock in the ledger.
+  await ok('POST', '/stock/moves', { type: 'buy', productId: whey.id, qty: 4, unitPrice: 1800, date: addDays(today, -30) })
+  const older = await ok('GET', `/stock/products/${whey.id}/ledger`)
+  assert.deepEqual(
+    older.rows.map((m) => [m.type, m.balance]),
+    [['adjust', 9], ['buy', 16], ['buy', 6], ['adjust', 2]],
+  )
+})

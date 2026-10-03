@@ -23,17 +23,17 @@ export function Logo() {
   )
 }
 
-// "Login" for visitors, "Open app" once logged in on this device.
-export function AppButton({ authed, className = 'w-btn primary' }) {
+// The website only shows to visitors (logged-in owners go straight to the app), so this is always Login.
+export function AppButton({ className = 'w-btn primary' }) {
   return (
-    <Link to={authed ? '/dashboard' : '/login'} className={className}>
-      {authed ? 'Open app' : 'Login'}
+    <Link to="/login" className={className}>
+      Login
       <Icon name="arrow" />
     </Link>
   )
 }
 
-export default function SiteLayout({ title, authed, children }) {
+export default function SiteLayout({ title, children }) {
   const { pathname, hash } = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -58,7 +58,7 @@ export default function SiteLayout({ title, authed, children }) {
               Home
             </NavLink>
             <NavLink to="/features">Features</NavLink>
-            <AppButton authed={authed} />
+            <AppButton />
           </nav>
           <button className="w-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-label="Menu" aria-expanded={menuOpen}>
             <Icon name={menuOpen ? 'close' : 'menu'} />
@@ -77,7 +77,7 @@ export default function SiteLayout({ title, authed, children }) {
           <div className="w-footer-links">
             <Link to="/">Home</Link>
             <Link to="/features">Features</Link>
-            <Link to={authed ? '/dashboard' : '/login'}>{authed ? 'Open app' : 'Login'}</Link>
+            <Link to="/login">Login</Link>
           </div>
         </div>
         <div className="w-container w-footer-bottom">© {YEAR} GymSolution · gymsolution.in</div>
@@ -93,7 +93,7 @@ export default function SiteLayout({ title, authed, children }) {
 }
 
 // Closing call-to-action band used at the bottom of both pages.
-export function CtaBand({ authed }) {
+export function CtaBand() {
   return (
     <section className="w-container">
       <div className="w-cta">
@@ -102,7 +102,7 @@ export function CtaBand({ authed }) {
           <p>Renewals, reminders, expenses and profit — all in one simple app on your phone and computer.</p>
         </div>
         <div className="w-cta-actions">
-          <AppButton authed={authed} className="w-btn light" />
+          <AppButton className="w-btn light" />
           <Link to="/features" className="w-btn ghost">
             See all features
           </Link>

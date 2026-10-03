@@ -221,6 +221,68 @@ input[type='number'] {
   box-shadow: none;
 }
 
+/* "More" menu at the right of the top bar: Dashboard, WhatsApp, Settings, Log out. */
+.top-menu {
+  position: relative;
+  flex: none;
+}
+
+.top-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 210px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.top-menu-list a,
+.top-menu-list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.top-menu-list a:hover,
+.top-menu-list button:hover {
+  background: var(--surface-2);
+}
+
+.top-menu-list a.active {
+  color: var(--brand);
+  background: var(--brand-soft);
+  font-weight: 600;
+}
+
+.top-menu-list .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.top-menu-list .danger {
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 10px 10px;
+  color: var(--danger);
+}
+
 .page {
   padding: 0 14px;
   display: flex;
@@ -1040,6 +1102,90 @@ button.stat {
   margin-top: 10px;
 }
 
+
+/* Stock page: product cards, sale / purchase rows, quantity stepper. */
+.btn-grid.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Stock ledger: date, entry, in, out, stock left. */
+.table.ledger td:nth-child(2),
+.table.ledger th:nth-child(2) {
+  text-align: left;
+}
+
+.table.ledger td {
+  vertical-align: top;
+}
+
+.table.ledger td small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.table.ledger td.in {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.table.ledger td.out {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.table.ledger .entry-sell {
+  color: var(--ok);
+}
+
+.table.ledger .entry-buy {
+  color: var(--warn);
+}
+
+.avatar.stock {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+}
+
+.avatar.move-sell {
+  background: linear-gradient(135deg, #22c55e, #0d9488);
+}
+
+.avatar.move-buy {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+}
+
+.avatar.move-adjust {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+.avatar.stock .icon,
+.avatar[class*='move-'] .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.row-side b.paid {
+  color: var(--ok);
+}
+
+.qty {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.qty input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.qty .btn {
+  flex: none;
+  width: 40px;
+  padding: 0;
+  font-size: 1.2rem;
+}
 
 /* Expense rows and the category manager. */
 .avatar.expense {

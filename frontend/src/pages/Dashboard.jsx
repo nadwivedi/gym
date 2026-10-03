@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLoad } from '../api.js'
 import { ColumnChart, GroupedChart, ShareBars, TrendChart } from '../components/charts.jsx'
 import { Icon, Loading } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { MONTHS, MONTH_NAMES, fmtDate, money, moneyShort } from '../format.js'
 import ExpenseSheet from '../sheets/ExpenseSheet.jsx'
@@ -34,9 +35,7 @@ export default function Dashboard() {
         {settings.gymName}
         <span className="sub">Dashboard · {fmtDate(today)}</span>
       </h1>
-      <Link to="/more" className="btn small" aria-label="Settings">
-        <Icon name="settings" />
-      </Link>
+      <TopMenu />
     </header>
   )
   if (!stats) {
@@ -118,7 +117,10 @@ export default function Dashboard() {
             <div className="tri-box income">
               <span>Income</span>
               <b>{moneyShort(scope.net)}</b>
-              <small>{plural(scope.count, 'payment')}</small>
+              <small>
+                {plural(scope.count, 'payment')}
+                {scope.shopSalesCount > 0 && ` · ${plural(scope.shopSalesCount, 'sale')}`}
+              </small>
             </div>
             <Link to="/expenses" className="tri-box expense">
               <span>Expenses</span>
@@ -205,10 +207,20 @@ export default function Dashboard() {
               <b className={scope.refunded > 0 ? 'due' : ''}>{money(scope.refunded)}</b>
             </div>
             <div>
-              <span>Income</span>
-              <b>{money(scope.net)}</b>
+              <span>Shop sales</span>
+              <b className={scope.shopSales > 0 ? 'paid' : ''}>{money(scope.shopSales)}</b>
             </div>
           </div>
+          <div className="kv">
+            <span>Total income (memberships + shop)</span>
+            <b>{money(scope.net)}</b>
+          </div>
+          {scope.shopBuys > 0 && (
+            <div className="kv">
+              <span>Stock bought (in expenses)</span>
+              <span>{money(scope.shopBuys)}</span>
+            </div>
+          )}
           <div className="kv">
             <span>New admissions and rejoins</span>
             <span>{scope.admissions}</span>
@@ -219,6 +231,7 @@ export default function Dashboard() {
           </div>
           <div className="chart-head sub">
             <h3>Received by payment mode</h3>
+            <p>Memberships and shop sales together.</p>
           </div>
           <ShareBars rows={modes.map((m) => ({ label: m, value: scope.byMode[m] || 0 }))} format={money} />
           <div className="chart-head sub">

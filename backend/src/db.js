@@ -98,7 +98,47 @@ export const Expense = model(
   ),
 )
 
-export const DEFAULT_EXPENSE_CATEGORIES = ['Electricity', 'Cleaning', 'Maintenance', 'Repair', 'Other']
+// Things the gym sells: protein, creatine, T-shirts and so on. `stock` is kept in step with StockMove.
+export const Product = model(
+  'Product',
+  new Schema(
+    {
+      name: { type: String, required: true },
+      category: { type: String, default: 'Other' },
+      sellPrice: { type: Number, default: 0 }, // price per piece the owner sells at
+      buyPrice: { type: Number, default: 0 }, // cost per piece of the last purchase
+      stock: { type: Number, default: 0 },
+      lowStock: { type: Number, default: 2 }, // warn when stock is at or below this
+      active: { type: Boolean, default: true },
+    },
+    opts,
+  ),
+)
+
+// buy: stock bought (money out). sell: sold to a customer (money in).
+// adjust: count correction or opening stock (no money); qty can be negative.
+export const StockMove = model(
+  'StockMove',
+  new Schema(
+    {
+      productId: { type: Schema.Types.ObjectId, required: true, index: true },
+      type: { type: String, enum: ['buy', 'sell', 'adjust'], required: true },
+      qty: { type: Number, required: true },
+      unitPrice: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }, // qty x unitPrice
+      unitCost: { type: Number, default: 0 }, // sell only: cost per piece at the time, for profit
+      date: { type: String, required: true, index: true },
+      mode: { type: String, default: 'Cash' },
+      customer: { type: String, default: '' },
+      note: { type: String, default: '' },
+    },
+    opts,
+  ),
+)
+
+export const DEFAULT_STOCK_CATEGORIES = ['Protein', 'Creatine', 'Mass gainer', 'T-shirts', 'Lowers', 'Other']
+
+export const DEFAULT_EXPENSE_CATEGORIES =['Electricity', 'Cleaning', 'Maintenance', 'Repair', 'Other']
 
 const Settings = model(
   'Settings',

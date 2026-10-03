@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, useAction, useLoad } from '../api.js'
 import { ContactButtons, ErrorBox, Icon, Loading, MemberRow } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { fmtDate, money } from '../format.js'
 import { HideSheet } from '../sheets/MemberSheets.jsx'
@@ -28,6 +29,7 @@ export default function Renewals() {
       <>
         <header className="topbar">
           <h1>Renewals</h1>
+          <TopMenu />
         </header>
         <div className="page">
           <Loading error={error} />
@@ -55,6 +57,7 @@ export default function Renewals() {
           Renewals
           <span className="sub">{fmtDate(today)}</span>
         </h1>
+        <TopMenu />
       </header>
       <div className="page">
         <div className="stat-grid">

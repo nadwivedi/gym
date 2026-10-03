@@ -16,9 +16,9 @@ const FOR_WHO = [
   ['users', 'Gyms with staff and trainers', 'Give staff limited access and keep an eye on trainers’ work.'],
 ]
 
-export default function Home({ authed }) {
+export default function Home() {
   return (
-    <SiteLayout title="GymSolution – Complete Gym Management Software" authed={authed}>
+    <SiteLayout title="GymSolution – Complete Gym Management Software">
       <section className="w-hero">
         <div className="w-container w-hero-inner">
           <div className="w-hero-text">
@@ -35,7 +35,7 @@ export default function Home({ authed }) {
                 See all features
                 <Icon name="arrow" />
               </Link>
-              <AppButton authed={authed} className="w-btn ghost" />
+              <AppButton className="w-btn ghost" />
             </div>
             <ul className="w-hero-checks">
               <li>
@@ -116,7 +116,7 @@ export default function Home({ authed }) {
         </div>
       </section>
 
-      <CtaBand authed={authed} />
+      <CtaBand />
     </SiteLayout>
   )
 }

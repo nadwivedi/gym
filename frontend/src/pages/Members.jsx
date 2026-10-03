@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLoad } from '../api.js'
 import { Loading, MemberRow } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 
 const FILTERS = [
@@ -40,6 +41,7 @@ export default function Members() {
         <button className="btn small primary" onClick={openAdd}>
           + Add
         </button>
+        <TopMenu />
       </header>
       <div className="page">
         <div className="search-box">

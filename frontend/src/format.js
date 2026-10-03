@@ -46,6 +46,16 @@ export function mobileDigits(v) {
   return d.slice(0, 10)
 }
 
+// Stock badge on a product: out of stock, running low, or how many are left.
+export const stockBadge = (p) =>
+  p.status === 'out' ? { tone: 'danger', text: 'Out of stock' } : p.status === 'low' ? { tone: 'warn', text: `Only ${p.stock} left` } : { tone: 'ok', text: `${p.stock} in stock` }
+
+// "Sold 2 × Whey Protein", "Bought 10 × Creatine", "T-shirt (L): -1 piece"
+export function moveTitle(m) {
+  if (m.type === 'adjust') return `${m.product}: ${m.qty > 0 ? '+' : ''}${m.qty} ${Math.abs(m.qty) === 1 ? 'piece' : 'pieces'}`
+  return `${m.type === 'sell' ? 'Sold' : 'Bought'} ${m.qty} × ${m.product}`
+}
+
 export const telLink = (phone) => `tel:${phone}`
 
 export function waLink(phone, countryCode, text) {

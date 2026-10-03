@@ -15,9 +15,9 @@ const MOCKS = {
   inventory: InventoryMock,
 }
 
-export default function Features({ authed }) {
+export default function Features() {
   return (
-    <SiteLayout title="Features – GymSolution Gym Management Software" authed={authed}>
+    <SiteLayout title="Features – GymSolution Gym Management Software">
       <section className="w-hero small">
         <div className="w-container w-page-head">
           <span className="w-eyebrow">Features</span>
@@ -62,7 +62,7 @@ export default function Features({ authed }) {
         })}
       </div>
 
-      <CtaBand authed={authed} />
+      <CtaBand />
     </SiteLayout>
   )
 }

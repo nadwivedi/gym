@@ -11,10 +11,15 @@ import Members from './pages/Members.jsx'
 import More from './pages/More.jsx'
 import Payments from './pages/Payments.jsx'
 import Renewals from './pages/Renewals.jsx'
+import Stock from './pages/Stock.jsx'
+import StockLedger from './pages/StockLedger.jsx'
 import WhatsApp from './pages/WhatsApp.jsx'
 import Features from './site/Features.jsx'
 import Home from './site/Home.jsx'
 import AddMemberSheet from './sheets/AddMemberSheet.jsx'
+
+// The first page after login, and where unknown addresses go.
+const HOME = '/renewals'
 
 export default function App() {
   const [authed, setAuthed] = useState(() => !!getToken())
@@ -34,8 +39,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home authed={authed} />} />
-        <Route path="/features" element={<Features authed={authed} />} />
+        {/* The website is for visitors only: once logged in, only the app shows. */}
+        <Route path="/" element={authed ? <Navigate to={HOME} replace /> : <Home />} />
+        <Route path="/features" element={authed ? <Navigate to={HOME} replace /> : <Features />} />
         <Route path="/login" element={<LoginRoute authed={authed} onDone={() => setAuthed(true)} />} />
         <Route path="*" element={authed ? <Shell onLogout={logout} /> : <ToLogin />} />
       </Routes>
@@ -51,7 +57,7 @@ function ToLogin() {
 
 function LoginRoute({ authed, onDone }) {
   const location = useLocation()
-  if (authed) return <Navigate to={location.state?.from || '/dashboard'} replace />
+  if (authed) return <Navigate to={location.state?.from || HOME} replace />
   return <Login onDone={onDone} />
 }
 
@@ -75,7 +81,7 @@ function Shell({ onLogout }) {
     )
   }
   return (
-    <AppContext.Provider value={{ ...boot.data, reloadApp: boot.reload, openAdd }}>
+    <AppContext.Provider value={{ ...boot.data, reloadApp: boot.reload, openAdd, logout: onLogout }}>
       <>
         <div className="app">
           <Routes>
@@ -85,17 +91,15 @@ function Shell({ onLogout }) {
             <Route path="/members/:id" element={<MemberProfile />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/expenses" element={<Expenses />} />
-            <Route path="/more" element={<More onLogout={onLogout} />} />
+            <Route path="/stock" element={<Stock />} />
+            <Route path="/stock/:id" element={<StockLedger />} />
+            <Route path="/more" element={<More />} />
             <Route path="/whatsapp" element={<WhatsApp />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to={HOME} replace />} />
           </Routes>
         </div>
         <nav className="nav">
           <div className="nav-inner">
-            <NavLink to="/dashboard">
-              <Icon name="home" />
-              Dashboard
-            </NavLink>
             <NavLink to="/renewals">
               <Icon name="calendar" />
               Renewals
@@ -111,6 +115,10 @@ function Shell({ onLogout }) {
             <NavLink to="/expenses">
               <Icon name="receipt" />
               Expenses
+            </NavLink>
+            <NavLink to="/stock">
+              <Icon name="box" />
+              Stock
             </NavLink>
           </div>
         </nav>

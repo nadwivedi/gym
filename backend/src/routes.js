@@ -2,7 +2,21 @@ import express from 'express'
 import { PAYMENT_MODES, addMonths, memberAge, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
 import { checkPassword, hashPassword, makeToken, newSecret, verifyToken } from './auth.js'
 import { toCsv } from './csv.js'
-import { Expense, ExpenseCategory, Member, Payment, Period, Plan, getSettings, logEntry, nextMemberNo, out } from './db.js'
+import {
+  DEFAULT_STOCK_CATEGORIES,
+  Expense,
+  ExpenseCategory,
+  Member,
+  Payment,
+  Period,
+  Plan,
+  Product,
+  StockMove,
+  getSettings,
+  logEntry,
+  nextMemberNo,
+  out,
+} from './db.js'
 import { loadSummaries, memberDetail, moneyFor } from './service.js'
 import { buildYearStats } from './stats.js'
 import { dateOf, fail, idOf, intOf, moneyOf, phoneOf, str } from './validate.js'
@@ -118,6 +132,45 @@ async function expenseFields(b, creating) {
   if (b.mode !== undefined) f.mode = modeOf(b.mode)
   if (b.note !== undefined) f.note = str(b.note, 300)
   return f
+}
+
+const round2 = (n) => Math.round(n * 100) / 100
+
+async function getProduct(id) {
+  return (await Product.findById(idOf(id))) || fail(404, 'Product not found')
+}
+
+// out: nothing left. low: at or below the owner's warning level.
+const productOut = (p) => ({ ...out(p), status: p.stock <= 0 ? 'out' : p.stock <= p.lowStock ? 'low' : 'ok' })
+
+// Fields of a product that the request sets. The stock count is changed only through stock moves.
+async function productFields(b, current) {
+  const f = {}
+  if (!current || b.name !== undefined) {
+    const name = str(b.name, 60) || fail(400, 'Product name is required')
+    const others = await Product.find({ _id: { $ne: current?._id } }, { name: 1 }).lean()
+    if (others.some((p) => p.name.toLowerCase() === name.toLowerCase())) fail(409, `There is already a product called ${name}`)
+    f.name = name
+  }
+  if (!current || b.category !== undefined) f.category = str(b.category, 40) || 'Other'
+  if (!current || b.sellPrice !== undefined) f.sellPrice = moneyOf(b.sellPrice ?? 0, 'Selling price')
+  if (b.buyPrice !== undefined) f.buyPrice = moneyOf(b.buyPrice, 'Buying price')
+  if (b.lowStock !== undefined) f.lowStock = intOf(b.lowStock, 'Low stock warning', 0, 100000)
+  if (b.active !== undefined) f.active = !!b.active
+  return f
+}
+
+const OPENING_STOCK = 'Opening stock'
+const isOpening = (m) => m.type === 'adjust' && m.note === OPENING_STOCK
+
+const stockCategories = (used) => [...new Set([...DEFAULT_STOCK_CATEGORIES, ...used])]
+
+// Sets the stock count to what the owner counted, recording the difference (no money involved).
+async function setStockCount(product, count, note) {
+  const diff = count - product.stock
+  if (!diff) return
+  await StockMove.create({ productId: product._id, type: 'adjust', qty: diff, date: todayStr(), note })
+  await Product.updateOne({ _id: product._id }, { $inc: { stock: diff } })
 }
 
 // Validates an admission / renewal and returns the fields to store.
@@ -296,11 +349,14 @@ export function api() {
     const thisYear = Number(today.slice(0, 4))
     const year = req.query.year === undefined ? thisYear : intOf(req.query.year, 'Year', 2000, 2100)
     const inYear = { $gte: `${year}-01-01`, $lt: `${year + 1}-01-01` }
-    const [payments, expenses, categories, firstExpense, periods, rows, firstPayment, firstPeriod] = await Promise.all([
+    const shopMoves = { type: { $in: ['buy', 'sell'] } }
+    const [payments, expenses, stockMoves, categories, firstExpense, firstShopMove, periods, rows, firstPayment, firstPeriod] = await Promise.all([
       Payment.find({ voided: { $ne: true }, date: inYear }).lean(),
       Expense.find({ date: inYear }).lean(),
+      StockMove.find({ ...shopMoves, date: inYear }, { type: 1, amount: 1, date: 1, mode: 1 }).lean(),
       loadCategories(),
       Expense.findOne().sort({ date: 1 }).lean(),
+      StockMove.findOne(shopMoves).sort({ date: 1 }).lean(),
       Period.find({ status: { $ne: 'cancelled' } }, { memberId: 1, startDate: 1, renewalDate: 1, kind: 1 }).lean(),
       loadSummaries(today),
       Payment.findOne({ voided: { $ne: true } }).sort({ date: 1 }).lean(),
@@ -308,12 +364,12 @@ export function api() {
     ])
     const names = new Map(categories.map((c) => [String(c._id), c.name]))
     for (const e of expenses) e.category = names.get(String(e.categoryId)) || 'Other'
-    const stats = buildYearStats({ year, today, payments, periods, expenses })
+    const stats = buildYearStats({ year, today, payments, periods, expenses, stockMoves })
     const active = rows.filter((s) => s.status === 'active' && !s.hidden).length
     // The current month shows the same count as the "active members" tile.
     if (year === thisYear) stats.months[Number(today.slice(5, 7)) - 1].active = active
     const dues = rows.filter((s) => s.balance > 0)
-    const firstYear = Math.min(thisYear, ...[firstPayment?.date, firstPeriod?.startDate, firstExpense?.date].filter(Boolean).map((d) => Number(d.slice(0, 4))))
+    const firstYear = Math.min(thisYear, ...[firstPayment?.date, firstPeriod?.startDate, firstExpense?.date, firstShopMove?.date].filter(Boolean).map((d) => Number(d.slice(0, 4))))
     res.json({
       year,
       today,
@@ -722,6 +778,143 @@ export function api() {
     res.json(out(category))
   })
 
+  // ---- Stock: things the gym sells (protein, creatine, T-shirts …) ----
+
+  r.get('/stock', async (req, res) => {
+    const products = await Product.find().sort({ category: 1, name: 1 }).lean()
+    const selling = products.filter((p) => p.active)
+    const sum = (fn) => round2(selling.reduce((total, p) => total + fn(p), 0))
+    res.json({
+      products: products.map(productOut),
+      categories: stockCategories(products.map((p) => p.category)),
+      totals: {
+        units: sum((p) => Math.max(p.stock, 0)),
+        value: sum((p) => Math.max(p.stock, 0) * p.sellPrice),
+        low: selling.filter((p) => p.stock > 0 && p.stock <= p.lowStock).length,
+        out: selling.filter((p) => p.stock <= 0).length,
+      },
+    })
+  })
+
+  // Stock ledger of one product: every buy, sale and count change with the stock left after it, newest first.
+  r.get('/stock/products/:id/ledger', async (req, res) => {
+    const product = await getProduct(req.params.id)
+    const [moves, used] = await Promise.all([
+      StockMove.find({ productId: product._id }).sort({ date: 1, createdAt: 1 }).lean(),
+      Product.distinct('category'),
+    ])
+    // Opening stock comes first even when an older bill is entered later.
+    moves.sort((a, b) => isOpening(b) - isOpening(a))
+    let balance = 0
+    const rows = moves.map((m) => {
+      balance += m.type === 'sell' ? -m.qty : m.qty
+      return { ...out(m), product: product.name, balance }
+    })
+    const sells = moves.filter((m) => m.type === 'sell')
+    const buys = moves.filter((m) => m.type === 'buy')
+    const total = (list, fn) => round2(list.reduce((sum, m) => sum + fn(m), 0))
+    res.json({
+      product: productOut(product.toObject()),
+      categories: stockCategories(used),
+      totals: {
+        boughtUnits: total(buys, (m) => m.qty),
+        bought: total(buys, (m) => m.amount),
+        soldUnits: total(sells, (m) => m.qty),
+        sold: total(sells, (m) => m.amount),
+        profit: total(sells, (m) => m.amount - m.unitCost * m.qty),
+        adjusted: total(moves.filter((m) => m.type === 'adjust'), (m) => m.qty),
+      },
+      rows: rows.reverse(),
+    })
+  })
+
+  // A new product. `stock` is what is already on the shelf (opening stock, no money).
+  r.post('/stock/products', async (req, res) => {
+    const b = req.body || {}
+    const product = await Product.create(await productFields(b, null))
+    if (b.stock !== undefined && b.stock !== '') await setStockCount(product, intOf(b.stock, 'Stock', 0, 100000), OPENING_STOCK)
+    res.status(201).json(productOut(await Product.findById(product._id).lean()))
+  })
+
+  // Edit a product; a new `stock` value corrects the count (damaged, lost, miscounted).
+  r.patch('/stock/products/:id', async (req, res) => {
+    const b = req.body || {}
+    const product = await getProduct(req.params.id)
+    product.set(await productFields(b, product))
+    await product.save()
+    if (b.stock !== undefined && b.stock !== '') await setStockCount(product, intOf(b.stock, 'Stock', 0, 100000), 'Count corrected')
+    res.json(productOut(await Product.findById(product._id).lean()))
+  })
+
+  // Buy stock (money out, stock up) or sell to a customer (money in, stock down).
+  r.post('/stock/moves', async (req, res) => {
+    const b = req.body || {}
+    const type = b.type === 'buy' || b.type === 'sell' ? b.type : fail(400, 'Choose buy or sell')
+    const product = await getProduct(b.productId)
+    const qty = intOf(b.qty, 'Quantity', 1, 100000)
+    const unitPrice = moneyOf(b.unitPrice, type === 'buy' ? 'Cost per piece' : 'Price per piece')
+    const move = {
+      productId: product._id,
+      type,
+      qty,
+      unitPrice,
+      amount: round2(qty * unitPrice),
+      date: paidDateOf(b.date, 'Date'),
+      mode: modeOf(b.mode),
+      note: str(b.note, 300),
+    }
+    if (type === 'sell') {
+      move.customer = str(b.customer, 60)
+      move.unitCost = product.buyPrice
+      // Takes the pieces only if they are there, even when two phones sell at the same time.
+      const taken = await Product.findOneAndUpdate({ _id: product._id, stock: { $gte: qty } }, { $inc: { stock: -qty } })
+      if (!taken) fail(409, product.stock > 0 ? `Only ${product.stock} ${product.name} left in stock` : `${product.name} is out of stock`)
+    } else {
+      await Product.updateOne({ _id: product._id }, { $inc: { stock: qty }, ...(unitPrice > 0 && { $set: { buyPrice: unitPrice } }) })
+    }
+    res.status(201).json(out(await StockMove.create(move)))
+  })
+
+  // Undo a wrong entry: its pieces go back (sell) or come off the shelf again (buy / count change).
+  r.delete('/stock/moves/:id', async (req, res) => {
+    const move = (await StockMove.findById(idOf(req.params.id))) || fail(404, 'Entry not found')
+    const change = move.type === 'sell' ? move.qty : -move.qty
+    if (change < 0) {
+      const ok = await Product.findOneAndUpdate({ _id: move.productId, stock: { $gte: -change } }, { $inc: { stock: change } })
+      if (!ok) fail(409, 'Some of these pieces are already sold, so this entry cannot be deleted. Correct the stock count on the product instead.')
+    } else {
+      await Product.updateOne({ _id: move.productId }, { $inc: { stock: change } })
+    }
+    await move.deleteOne()
+    res.json({ ok: true })
+  })
+
+  // One month of buys, sells and count changes, newest first, with totals.
+  r.get('/stock/moves', async (req, res) => {
+    const month = typeof req.query.month === 'string' && /^\d{4}-\d{2}$/.test(req.query.month) ? req.query.month : ''
+    const from = dateOf(`${month}-01`, 'Month')
+    const [items, products] = await Promise.all([
+      StockMove.find({ date: { $gte: from, $lt: addMonths(from, 1) } }).sort({ date: -1, createdAt: -1 }).lean(),
+      Product.find({}, { name: 1 }).lean(),
+    ])
+    const names = new Map(products.map((p) => [String(p._id), p.name]))
+    const sells = items.filter((m) => m.type === 'sell')
+    const buys = items.filter((m) => m.type === 'buy')
+    const total = (list, fn) => round2(list.reduce((sum, m) => sum + fn(m), 0))
+    res.json({
+      month,
+      totals: {
+        sold: total(sells, (m) => m.amount),
+        soldUnits: total(sells, (m) => m.qty),
+        profit: total(sells, (m) => m.amount - m.unitCost * m.qty),
+        noCost: sells.some((m) => !m.unitCost), // some sales have no cost price, so their profit is the full price
+        bought: total(buys, (m) => m.amount),
+        boughtUnits: total(buys, (m) => m.qty),
+      },
+      items: items.map((m) => ({ ...out(m), product: names.get(String(m.productId)) || 'Unknown product' })),
+    })
+  })
+
   // ---- Backup ----
 
   r.get('/export/members.csv', async (req, res) => {
@@ -765,14 +958,32 @@ export function api() {
     )
   })
 
+  r.get('/export/stock.csv', async (req, res) => {
+    const [moves, products] = await Promise.all([StockMove.find().sort({ date: 1, createdAt: 1 }).lean(), Product.find().lean()])
+    const byId = new Map(products.map((p) => [String(p._id), p]))
+    const kind = { buy: 'Bought', sell: 'Sold', adjust: 'Count change' }
+    res.type('text/csv').send(
+      toCsv(
+        ['Date', 'Type', 'Product', 'Category', 'Quantity', 'Price per piece', 'Amount', 'Mode', 'Customer', 'Note'],
+        moves.map((m) => {
+          const p = byId.get(String(m.productId))
+          const money = m.type !== 'adjust'
+          return [m.date, kind[m.type], p?.name, p?.category, m.qty, money ? m.unitPrice : '', money ? m.amount : '', money ? m.mode : '', m.customer, m.note]
+        }),
+      ),
+    )
+  })
+
   r.get('/export/backup.json', async (req, res) => {
-    const [members, periods, payments, plans, expenses, expenseCategories] = await Promise.all([
+    const [members, periods, payments, plans, expenses, expenseCategories, products, stockMoves] = await Promise.all([
       Member.find().lean(),
       Period.find().lean(),
       Payment.find().lean(),
       Plan.find().lean(),
       Expense.find().lean(),
       ExpenseCategory.find().lean(),
+      Product.find().lean(),
+      StockMove.find().lean(),
     ])
     res.json({
       exportedAt: new Date().toISOString(),
@@ -783,6 +994,8 @@ export function api() {
       plans,
       expenses,
       expenseCategories,
+      products,
+      stockMoves,
     })
   })
 

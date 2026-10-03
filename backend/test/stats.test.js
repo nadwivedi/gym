@@ -65,3 +65,24 @@ test('year stats: a past year is filled for all twelve months', () => {
   assert.equal(months[10].active, 0)
   assert.equal(months[11].active, 1)
 })
+
+test('year stats: shop sales are income and stock bought is an expense', () => {
+  const { months, total } = buildYearStats({
+    year: 2026,
+    today: '2026-10-02',
+    payments: [pay('2026-02-01', 1000)],
+    periods: [],
+    expenses: [{ date: '2026-02-03', amount: 200, category: 'Rent' }],
+    stockMoves: [
+      { type: 'buy', amount: 1800, date: '2026-02-05', mode: 'Cash' },
+      { type: 'sell', amount: 2400, date: '2026-02-10', mode: 'UPI' },
+      { type: 'sell', amount: 900, date: '2026-03-01', mode: 'Cash' },
+    ],
+  })
+  const feb = months[1]
+  assert.deepEqual([feb.collected, feb.shopSales, feb.net, feb.shopBuys, feb.expense, feb.profit], [1000, 2400, 3400, 1800, 2000, 1400])
+  assert.deepEqual(feb.byCategory, { Rent: 200, 'Stock bought': 1800 })
+  assert.deepEqual([feb.count, feb.shopSalesCount, feb.expenseCount], [1, 1, 2])
+  assert.deepEqual(feb.byMode, { Cash: 1000, UPI: 2400 }) // shop sales count in the money received by each mode
+  assert.deepEqual([total.shopSales, total.net, total.expense, total.profit], [3300, 4300, 2000, 2300])
+})

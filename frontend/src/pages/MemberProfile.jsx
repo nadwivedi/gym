@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { memberAge } from '../../../shared/domain.mjs'
 import { api, useAction, useLoad } from '../api.js'
 import { Avatar, Badge, ContactButtons, ErrorBox, Icon, Loading } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { dueInfo, fmtDate, money } from '../format.js'
 import { EditMemberSheet, HideSheet } from '../sheets/MemberSheets.jsx'
@@ -68,6 +69,7 @@ export default function MemberProfile() {
         <button className="btn small" onClick={() => setSheet({ type: 'editMember' })}>
           Edit
         </button>
+        <TopMenu />
       </header>
 
       <div className="page">

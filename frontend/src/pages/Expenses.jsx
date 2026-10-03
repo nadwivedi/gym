@@ -3,6 +3,7 @@ import { addMonths } from '../../../shared/domain.mjs'
 import { useLoad } from '../api.js'
 import { ShareBars } from '../components/charts.jsx'
 import { Icon, Loading } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { MONTHS, MONTH_NAMES, fmtDate, money } from '../format.js'
 import ExpenseSheet from '../sheets/ExpenseSheet.jsx'
@@ -26,6 +27,7 @@ export default function Expenses() {
     <>
       <header className="topbar">
         <h1>Expenses</h1>
+        <TopMenu />
       </header>
       <div className="page">
       <div className="filters">

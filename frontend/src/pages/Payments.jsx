@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useLoad } from '../api.js'
 import { Avatar, Badge, ContactButtons, Icon, Loading, MemberRow } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { fmtDate, money } from '../format.js'
 import PaymentSheet from '../sheets/PaymentSheet.jsx'
@@ -19,6 +20,7 @@ export default function Payments() {
     <>
       <header className="topbar">
         <h1>Payments</h1>
+        <TopMenu />
       </header>
       <div className="page">
         <div className="tabs" role="tablist">

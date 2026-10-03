@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api, useAction, useLoad } from '../api.js'
 import { Badge, ErrorBox, Icon, Loading } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { fmtDate } from '../format.js'
 
 const BUSY = ['initializing', 'qr_ready', 'syncing']
@@ -48,6 +49,7 @@ export default function WhatsApp() {
           <Icon name="back" />
         </Link>
         <h1>WhatsApp reminders</h1>
+        <TopMenu />
       </header>
       <div className="page">
         {!s ? (

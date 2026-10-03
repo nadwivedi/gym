@@ -3,24 +3,22 @@ import { api, download, setToken, useAction } from '../api.js'
 import { Link } from 'react-router-dom'
 import { MoneyInput } from '../components/fields.jsx'
 import { Badge, ErrorBox, Field, Group, Icon, Sheet } from '../components/ui.jsx'
+import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { mobileDigits, money } from '../format.js'
 
-export default function More({ onLogout }) {
-  const { today } = useApp()
+export default function More() {
+  const { today, logout } = useApp()
   const exp = useAction()
   const get = (path, name) => exp.run(() => download(path, name).then(() => true))
   return (
     <>
       <header className="topbar">
-        <Link to="/dashboard" className="btn small" aria-label="Back to dashboard">
+        <Link to="/renewals" className="btn small" aria-label="Back to renewals">
           <Icon name="back" />
         </Link>
         <h1>Settings</h1>
-        <button className="btn small" onClick={onLogout}>
-          <Icon name="logout" />
-          Log out
-        </button>
+        <TopMenu />
       </header>
       <div className="page">
         <Link to="/whatsapp" className="card row">
@@ -53,6 +51,9 @@ export default function More({ onLogout }) {
           <button className="btn block" disabled={exp.busy} onClick={() => get('/export/expenses.csv', `expenses-${today}.csv`)}>
             Expenses (Excel / CSV)
           </button>
+          <button className="btn block" disabled={exp.busy} onClick={() => get('/export/stock.csv', `stock-${today}.csv`)}>
+            Stock sales and buys (Excel / CSV)
+          </button>
           <button className="btn block" disabled={exp.busy} onClick={() => get('/export/backup.json', `gym-backup-${today}.json`)}>
             Full backup file
           </button>
@@ -61,7 +62,7 @@ export default function More({ onLogout }) {
 
         <div className="section-title">Login details</div>
         <LoginDetails />
-        <button className="btn danger block" onClick={onLogout}>
+        <button className="btn danger block" onClick={logout}>
           <Icon name="logout" />
           Log out
         </button>

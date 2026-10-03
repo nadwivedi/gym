@@ -1,6 +1,6 @@
 # Gym Members
 
-Member admission, renewals, payments, dues and expenses for one gym, with a dashboard of income, expenses and profit. Mobile-first web app.
+Member admission, renewals, payments, dues, expenses and a stock shop (protein, creatine, clothes…) for one gym, with a dashboard of income, expenses and profit. Mobile-first web app.
 
 ## Start
 
