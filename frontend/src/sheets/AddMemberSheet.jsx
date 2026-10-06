@@ -7,6 +7,9 @@ import { ErrorBox, Field, Group, Section, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 import { fmtDate, payNowBody, personalBody, promisedBody } from '../format.js'
 
+// Typing into a fee that still shows the default 0 replaces it: 0 then "5" gives 5, not 05 or 50.
+const overZero = (prev, set) => (v) => set(prev === '0' && /^\d\d$/.test(v) ? v.replace('0', '') : v)
+
 export default function AddMemberSheet({ onClose }) {
   const { today, plans, settings } = useApp()
   const navigate = useNavigate()
@@ -111,10 +114,10 @@ export default function AddMemberSheet({ onClose }) {
           )}
           <div className="field-row">
             <Field label="Plan fee">
-              <MoneyInput value={fee} onChange={setFee} required />
+              <MoneyInput value={fee} onChange={overZero(fee, setFee)} required />
             </Field>
             <Field label="Admission fee">
-              <MoneyInput value={admissionFee} onChange={setAdmissionFee} />
+              <MoneyInput value={admissionFee} onChange={overZero(admissionFee, setAdmissionFee)} />
             </Field>
           </div>
         </Section>
