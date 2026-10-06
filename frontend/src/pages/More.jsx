@@ -6,6 +6,12 @@ import { Badge, ErrorBox, Field, Group, Icon, Sheet } from '../components/ui.jsx
 import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { mobileDigits, money } from '../format.js'
+import { getTheme, setTheme } from '../theme.js'
+
+const THEMES = [
+  ['light', 'sun', 'Light'],
+  ['dark', 'moon', 'Dark'],
+]
 
 export default function More() {
   const { today, logout } = useApp()
@@ -38,6 +44,9 @@ export default function More() {
 
         <div className="section-title">Settings</div>
         <Settings />
+
+        <div className="section-title">Appearance</div>
+        <Appearance />
 
         <div className="section-title">Backup</div>
         <div className="card form">
@@ -273,6 +282,30 @@ function Settings() {
         {busy ? 'Saving…' : 'Save settings'}
       </button>
     </form>
+  )
+}
+
+// Light or dark screens. The choice is kept on this device, not on the server.
+function Appearance() {
+  const [theme, setCurrent] = useState(getTheme)
+  const pick = (t) => {
+    setTheme(t)
+    setCurrent(t)
+  }
+  return (
+    <div className="card form">
+      <Group label="Theme">
+        <div className="btn-grid">
+          {THEMES.map(([key, icon, label]) => (
+            <button type="button" key={key} className={`radio-card theme ${theme === key ? 'active' : ''}`} aria-pressed={theme === key} onClick={() => pick(key)}>
+              <Icon name={icon} />
+              <b>{label}</b>
+            </button>
+          ))}
+        </div>
+      </Group>
+      <p className="hint">Applies to every screen and stays on this device until you change it.</p>
+    </div>
   )
 }
 

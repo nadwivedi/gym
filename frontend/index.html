@@ -7,6 +7,10 @@
     <meta name="theme-color" content="#1f2a3c" />
     <meta name="description" content="GymSolution is a complete gym management software for gym owners: renewals, member records, automatic WhatsApp reminders, expenses, monthly profit, supplement stock inventory, multi-gym, staff and trainer panels." />
     <title>GymSolution – Complete Gym Management Software</title>
+    <script>
+      // Dark mode picked in Settings (src/theme.js): set before the first paint, so the page never flashes light.
+      if (localStorage.getItem('gym_theme') === 'dark') document.documentElement.dataset.theme = 'dark'
+    </script>
   </head>
   <body>
     <div id="root"></div>

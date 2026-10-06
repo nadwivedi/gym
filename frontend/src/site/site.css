@@ -1211,24 +1211,27 @@ a.w-card:hover {
   color: #667781;
 }
 
-@media (prefers-color-scheme: dark) {
-  .m-wa-body {
-    background: #0b141a;
-    color: #e9edef;
-  }
+:root[data-theme='dark'] .m-wa-body {
+  background: #0b141a;
+  color: #e9edef;
+}
 
-  .m-wa-date,
-  .m-bubble {
-    color: #e9edef;
-    background: #202c33;
-  }
+:root[data-theme='dark'] .m-wa-date,
+:root[data-theme='dark'] .m-bubble {
+  color: #e9edef;
+  background: #202c33;
+}
 
-  .m-bubble.me {
-    background: #005c4b;
-  }
+:root[data-theme='dark'] .m-bubble.me {
+  background: #005c4b;
+}
 
-  .m-bubble small,
-  .m-wa-date {
-    color: #8696a0;
-  }
+:root[data-theme='dark'] .m-bubble small,
+:root[data-theme='dark'] .m-wa-date {
+  color: #8696a0;
+}
+
+/* The grey time is too faint on the green bubble. */
+:root[data-theme='dark'] .m-bubble.me small {
+  color: #c2d9d4;
 }

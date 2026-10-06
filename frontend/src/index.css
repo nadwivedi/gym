@@ -58,52 +58,51 @@
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1120;
-    --surface: #141d30;
-    --surface-2: #1b2640;
-    --text: #e6eaf3;
-    --muted: #94a3b8;
-    --border: #26334d;
-    --border-strong: #37476a;
+/* Dark mode: only when picked under Settings → Appearance (theme.js). Light is the default. */
+:root[data-theme='dark'] {
+  --bg: #0b1120;
+  --surface: #141d30;
+  --surface-2: #1b2640;
+  --text: #e6eaf3;
+  --muted: #94a3b8;
+  --border: #26334d;
+  --border-strong: #37476a;
 
-    --brand: #6ea0ff;
-    --brand-soft: #16264a;
-    --brand-ring: #2a4480;
-    --grad-head: linear-gradient(120deg, #131b2b, #1b2740 55%, #243657);
-    --grad-tint: linear-gradient(90deg, #1a2346, #241f47 55%, #2c1d3d);
-    --grad-panel: linear-gradient(90deg, #141d30, #182238);
+  --brand: #6ea0ff;
+  --brand-soft: #16264a;
+  --brand-ring: #2a4480;
+  --grad-head: linear-gradient(120deg, #131b2b, #1b2740 55%, #243657);
+  --grad-tint: linear-gradient(90deg, #1a2346, #241f47 55%, #2c1d3d);
+  --grad-panel: linear-gradient(90deg, #141d30, #182238);
 
-    --ok: #4ade80;
-    --ok-soft: #12301f;
-    --ok-ring: #1d4a30;
-    --danger: #fca5a5;
-    --danger-soft: #3a1a1c;
-    --danger-ring: #5c2a2d;
-    --warn: #fbbf24;
-    --warn-soft: #3a2c0d;
-    --warn-ring: #5a4513;
-    --info: #93c5fd;
-    --info-soft: #172a4d;
-    --info-ring: #27437a;
-    --purple-soft: #241b47;
-    --purple-ring: #3d2f73;
+  --ok: #4ade80;
+  --ok-soft: #12301f;
+  --ok-ring: #1d4a30;
+  --danger: #fca5a5;
+  --danger-soft: #3a1a1c;
+  --danger-ring: #5c2a2d;
+  --warn: #fbbf24;
+  --warn-soft: #3a2c0d;
+  --warn-ring: #5a4513;
+  --info: #93c5fd;
+  --info-soft: #172a4d;
+  --info-ring: #27437a;
+  --purple-soft: #241b47;
+  --purple-ring: #3d2f73;
 
-    --chart-accent: #6ea0ff;
-    --chart-mute: #3b4f78;
-    --chart-mute-hover: #4d669a;
-    --series-income: #5b8def;
-    --series-expense: #d96a1f;
-    --profit-accent: #a78bfa;
-    --profit-mute: #4c3f7a;
-    --profit-mute-hover: #5f5096;
+  --chart-accent: #6ea0ff;
+  --chart-mute: #3b4f78;
+  --chart-mute-hover: #4d669a;
+  --series-income: #5b8def;
+  --series-expense: #d96a1f;
+  --profit-accent: #a78bfa;
+  --profit-mute: #4c3f7a;
+  --profit-mute-hover: #5f5096;
 
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow: 0 4px 8px -2px rgb(0 0 0 / 0.5);
-    --shadow-lg: 0 16px 32px -8px rgb(0 0 0 / 0.7);
-    color-scheme: dark;
-  }
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow: 0 4px 8px -2px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 16px 32px -8px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
 }
 
 * {
@@ -1796,6 +1795,17 @@ button.stat {
 
 .radio-card small {
   color: var(--muted);
+}
+
+/* Settings: Light / Dark choice, icon beside the name. */
+.radio-card.theme {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.radio-card.theme.active .icon {
+  color: var(--brand);
 }
 
 .hint {
