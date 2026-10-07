@@ -3,7 +3,9 @@
   --surface: #ffffff;
   --surface-2: #f1f5f9;
   --text: #0f172a;
-  --muted: #64748b;
+  --muted: #5f6f86;
+  /* Small labels on tinted boxes: a step darker than --muted so they stay readable. */
+  --muted-2: color-mix(in srgb, var(--muted) 55%, var(--text));
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
 
@@ -49,6 +51,7 @@
   --shadow-brand: 0 8px 16px -6px rgb(37 99 235 / 0.55);
 
   --radius: 16px;
+  --side-w: 264px;
   --nav-h: 64px;
   font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
@@ -290,6 +293,171 @@ input[type='number'] {
   animation: fadeIn 0.2s ease-out;
 }
 
+/* ---- Sidebar ---- */
+
+/* The menu on the left of every app page, from 1024px wide. A phone or tablet has the bar at the bottom instead. */
+.side {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 15;
+  width: var(--side-w);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px calc(12px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  box-shadow: 4px 0 18px -14px rgb(15 23 42 / 0.3);
+  overflow-y: auto;
+}
+
+.side-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.side-brand b {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-logo {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #2563eb;
+}
+
+.side-logo .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.side-title {
+  padding: 16px 12px 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 2px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  font-size: 0.93rem;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.side-link .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+
+.side-link:hover {
+  background: var(--surface-2);
+}
+
+/* The page you are on. The same blue in both themes, so the white name always reads. */
+.side-link.active {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 6px 14px -6px rgb(37 99 235 / 0.6);
+}
+
+.side-link.active .icon {
+  color: #fff;
+}
+
+.side-link.danger,
+.side-link.danger .icon {
+  color: var(--danger);
+}
+
+.side-foot {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Who is logged in: the gym and its login number. Opens Settings, where both are changed. */
+.side-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 4px;
+  padding: 8px;
+  border-radius: 12px;
+  transition: background 0.15s;
+}
+
+.side-user:hover {
+  background: var(--surface-2);
+}
+
+.side-user .avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 0.82rem;
+  box-shadow: none;
+}
+
+.side-user span:not(.avatar) {
+  flex: 1;
+  min-width: 0;
+}
+
+.side-user b,
+.side-user small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-user b {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.side-user small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+/* ---- Bottom bar (phone) ---- */
+
 .nav {
   position: fixed;
   bottom: 0;
@@ -339,6 +507,33 @@ input[type='number'] {
   height: 3px;
   border-radius: 0 0 4px 4px;
   background: var(--grad-brand);
+}
+
+/* Wide screen: the sidebar, and no bottom bar to leave room for. */
+@media (min-width: 1024px) {
+  .nav {
+    display: none;
+  }
+
+  /* Everything in the More menu is in the sidebar here, so the button is not shown. */
+  .top-menu {
+    display: none;
+  }
+
+  .main {
+    margin-left: var(--side-w);
+  }
+
+  .app {
+    max-width: 720px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 28px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .side {
+    display: none;
+  }
 }
 
 .nav svg,
@@ -552,14 +747,15 @@ button.card {
   min-width: 0;
   padding: 12px;
   border-radius: var(--radius);
+  --tint: var(--brand-soft);
   border: 2px solid var(--brand-ring);
-  background: linear-gradient(90deg, var(--brand-soft), var(--surface));
+  background: linear-gradient(90deg, var(--tint), var(--surface));
   box-shadow: var(--shadow-sm);
 }
 
 .stat.orange {
+  --tint: var(--warn-soft);
   border-color: var(--warn-ring);
-  background: linear-gradient(90deg, var(--warn-soft), var(--surface));
 }
 
 .stat-icon {
@@ -579,8 +775,8 @@ button.card {
 }
 
 .stat.green {
+  --tint: var(--ok-soft);
   border-color: var(--ok-ring);
-  background: linear-gradient(90deg, var(--ok-soft), var(--surface));
 }
 
 .stat.green .stat-icon {
@@ -588,8 +784,8 @@ button.card {
 }
 
 .stat.red {
+  --tint: var(--danger-soft);
   border-color: var(--danger-ring);
-  background: linear-gradient(90deg, var(--danger-soft), var(--surface));
 }
 
 .stat.red .stat-icon {
@@ -597,8 +793,8 @@ button.card {
 }
 
 .stat.purple {
+  --tint: var(--purple-soft);
   border-color: var(--purple-ring);
-  background: linear-gradient(90deg, var(--purple-soft), var(--surface));
 }
 
 .stat.purple .stat-icon {
@@ -1758,13 +1954,6 @@ button.stat {
   }
 }
 
-.search-box {
-  padding: 10px;
-  border-radius: 14px;
-  border: 2px solid var(--brand-ring);
-  background: linear-gradient(90deg, var(--brand-soft), var(--surface));
-}
-
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2366,4 +2555,1139 @@ details.log li {
 details.log ul {
   margin: 6px 0 0;
   padding-left: 18px;
+}
+
+/* ---- Renewals page ---- */
+
+/* Header on the page background: big title, small line under it. Renewals always, every page in the light theme. */
+.topbar.rn-head,
+:root:not([data-theme='dark']) .topbar {
+  padding-top: 16px;
+  margin-bottom: 8px;
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.rn-head h1,
+:root:not([data-theme='dark']) .topbar h1 {
+  font-size: 1.65rem;
+  letter-spacing: -0.01em;
+}
+
+/* A page opened from another one starts with a back button: its title stays smaller, so a long name fits. */
+:root:not([data-theme='dark']) .topbar > .btn:first-child + h1 {
+  font-size: 1.25rem;
+  letter-spacing: 0;
+}
+
+.rn-head .sub,
+:root:not([data-theme='dark']) .topbar .sub {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.rn-head .sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rn-head .sub .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.topbar.rn-head .btn,
+:root:not([data-theme='dark']) .topbar .btn:not(.primary) {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.rn-head,
+.rn {
+  /* One flat blue for the selected tab and the buttons. */
+  --rn-blue: #2563eb;
+}
+
+.rn {
+  gap: 14px;
+}
+
+.rn .btn.primary,
+.rn .tab.active,
+.rn .chip.active {
+  background: var(--rn-blue);
+}
+
+.rn .tab {
+  min-height: 40px;
+}
+
+.rn .tab.active .count {
+  background: #fff;
+  color: var(--rn-blue);
+}
+
+.rn-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.rn-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ok-ring);
+  background: color-mix(in srgb, var(--ok-soft) 55%, var(--surface));
+  box-shadow: var(--shadow-sm);
+}
+
+.rn-stat.danger {
+  border-color: var(--danger-ring);
+  background: color-mix(in srgb, var(--danger-soft) 55%, var(--surface));
+}
+
+.rn-stat-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #16a34a;
+}
+
+.rn-stat.danger .rn-stat-icon {
+  background: #ef4444;
+}
+
+.rn-stat > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.rn-stat b {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.rn-stat > div span {
+  display: block;
+  color: var(--muted-2);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.rn-stat .flip {
+  display: grid;
+  color: var(--muted-2);
+}
+
+.rn-stat .flip .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* On a phone the two cards stay side by side: tighter, and without the arrow. */
+@media (max-width: 479px) {
+  .rn-stats {
+    gap: 10px;
+  }
+
+  .rn-stat {
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .rn-stat-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .rn-stat-icon .icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .rn-stat b {
+    font-size: 1.15rem;
+    overflow-wrap: anywhere;
+  }
+
+  .rn-stat > div span {
+    font-size: 0.72rem;
+  }
+
+  .rn-stat .flip {
+    display: none;
+  }
+}
+
+.searchbar {
+  display: flex;
+  gap: 10px;
+}
+
+.searchbar-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.searchbar-box .icon {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.searchbar-box .search {
+  min-height: 48px;
+  padding-left: 42px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  text-overflow: ellipsis;
+}
+
+.searchbar .btn {
+  flex: none;
+  min-height: 48px;
+}
+
+.searchbar .btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.searchbar .btn.on {
+  color: var(--brand);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+/* On a phone the Filter button is just its icon, so the search hint fits. */
+@media (max-width: 430px) {
+  .searchbar .btn {
+    width: 48px;
+    padding: 0;
+  }
+
+  .searchbar .btn span {
+    display: none;
+  }
+}
+
+/* The member list: one card, a title strip, then a block per member. */
+.rn-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.list-head b {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.list-head span {
+  color: var(--muted-2);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.rn-row {
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.list-head + .rn-row {
+  border-top: none;
+}
+
+.rn-row-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rn-row-head .avatar {
+  box-shadow: none;
+}
+
+/* Very small phones: the name needs the room more than the initials do. */
+@media (max-width: 360px) {
+  .rn-row-head .avatar {
+    display: none;
+  }
+}
+
+.rn-facts {
+  display: grid;
+  /* The date is the widest of the three. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.1fr);
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.rn-facts span {
+  display: block;
+  color: var(--muted-2);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rn-facts b {
+  font-size: 0.88rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rn-facts b.due {
+  color: var(--danger);
+}
+
+@media (max-width: 360px) {
+  .rn-facts {
+    padding: 10px;
+  }
+}
+
+.rn-row .member-body {
+  padding: 0;
+  border-top: none;
+}
+
+.rn-row .member-body .note {
+  margin: 12px 0 0;
+}
+
+.rn-row .member-body .row-actions {
+  margin-top: 12px;
+}
+
+.rn-row .member-body .row-actions:empty {
+  display: none;
+}
+
+.blank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 44px 20px 48px;
+  text-align: center;
+}
+
+.blank-icon {
+  width: 76px;
+  height: 76px;
+  margin-bottom: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #16a34a;
+  /* Two soft rings around the tick. */
+  box-shadow:
+    0 0 0 10px var(--ok-soft),
+    0 0 0 20px color-mix(in srgb, var(--ok-soft) 45%, transparent);
+}
+
+.blank-icon .icon {
+  width: 36px;
+  height: 36px;
+  stroke-width: 2.5;
+}
+
+.blank.info .blank-icon {
+  color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--brand-soft) 45%, transparent);
+}
+
+.blank .btn {
+  margin-top: 12px;
+}
+
+.blank.plain .blank-icon {
+  color: var(--muted);
+  background: var(--surface-2);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+.blank h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.blank p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---- Lists that are a table on a wide screen and cards on a narrow one (Stock, Members) ---- */
+
+/* Summary tiles; tapping one filters the list below. Two a row on a phone, four on a wide screen. */
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .tiles {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.tiles .stat {
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.tiles .stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.tiles .stat.on:hover {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--border-strong),
+    var(--shadow);
+}
+
+/* The card around the list. It measures itself, so the layout follows the room it really has. */
+.rlist {
+  padding: 0;
+  overflow: hidden;
+  container: rlist / inline-size;
+}
+
+/* Narrow: each row is a block (who and status, a few labelled facts, the buttons) and the column titles are hidden from view. */
+.rtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rtable thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.rtable tr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 8px;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.rtable tbody tr:first-child {
+  border-top: none;
+}
+
+.rtable td {
+  display: block;
+  min-width: 0;
+  padding: 0;
+}
+
+.rtable td small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.rt-item {
+  order: 1;
+  flex: 1 1 calc(100% - 150px);
+}
+
+.rt-item a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rt-item .avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 0.82rem;
+  box-shadow: none;
+}
+
+.rt-item span:not(.avatar) {
+  min-width: 0;
+}
+
+.rt-item b {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rt-item small {
+  font-size: 0.78rem;
+}
+
+.rt-item a:hover b {
+  color: var(--brand);
+}
+
+.rtable tr.off .rt-item b {
+  color: var(--muted);
+}
+
+.rt-status {
+  order: 2;
+  flex: none;
+  margin-left: auto;
+}
+
+.rtable td[data-label] {
+  order: 3;
+  flex: 1 1 calc(50% - 4px);
+  align-self: stretch;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+
+.rtable td[data-label]::before {
+  content: attr(data-label);
+  display: block;
+  margin-bottom: 1px;
+  color: var(--muted-2);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rt-acts {
+  order: 4;
+  flex: 1 1 100%;
+}
+
+.rt-acts > div {
+  display: flex;
+  gap: 6px;
+}
+
+.rt-acts .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+/* Tablet: still blocks, but the buttons keep their own width instead of stretching across. */
+@container rlist (min-width: 560px) {
+  .rt-acts .btn {
+    flex: none;
+    padding: 0 14px;
+  }
+}
+
+/* Wide: a real table, one line per row. */
+@container rlist (min-width: 940px) {
+  .rtable thead {
+    position: static;
+    display: table-header-group;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+
+  .rtable tr {
+    display: table-row;
+  }
+
+  .rtable tbody tr {
+    transition: background 0.15s;
+  }
+
+  .rtable tbody tr:hover {
+    background: var(--surface-2);
+  }
+
+  .rtable th,
+  .rtable td,
+  .rtable td[data-label] {
+    display: table-cell;
+    padding: 12px 10px;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .rtable th {
+    padding: 10px;
+    border-top: none;
+    color: var(--muted-2);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .rtable th:first-child,
+  .rtable td:first-child {
+    padding-left: 14px;
+  }
+
+  .rtable th:last-child,
+  .rtable td:last-child {
+    padding-right: 14px;
+    text-align: right;
+  }
+
+  .rtable td[data-label]::before {
+    content: none;
+  }
+
+  .rt-acts > div {
+    justify-content: flex-end;
+  }
+
+  .rt-acts .btn {
+    padding: 0 12px;
+  }
+}
+
+/* ---- Stock page ---- */
+
+/* Sell / Buy stock / Add Item above the tabs on a phone; on a wide screen, tabs left and buttons right. */
+.st-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.st-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.st-actions .btn {
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .st-bar {
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .st-actions {
+    display: flex;
+  }
+
+  .st-actions .btn {
+    padding: 0 14px;
+  }
+
+  .st-bar .tabs {
+    margin: 0;
+    padding: 3px 0;
+    overflow: visible;
+  }
+}
+
+.st .btn:not(.primary):hover:not(:disabled),
+.mb .btn:not(.primary):not(.danger):hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+/* Search, then the two filters; on a phone the filters drop to their own row. */
+.st-filters {
+  flex-wrap: wrap;
+}
+
+.st-filters .searchbar-box {
+  flex: 1 1 260px;
+}
+
+.st-filters select {
+  flex: 1 1 150px;
+  width: auto;
+  max-width: 220px;
+  min-height: 48px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* A product has three facts: all on one line. */
+.st .rtable td[data-label] {
+  flex-basis: calc(33.333% - 6px);
+}
+
+/* ---- Members page ---- */
+
+/* The smallest phones: a slightly smaller title, so "Members" fits beside the two buttons. */
+@media (max-width: 360px) {
+  :root:not([data-theme='dark']) .topbar:has(+ .mb) h1 {
+    font-size: 1.3rem;
+  }
+}
+
+.mb .chips {
+  padding-top: 0;
+  padding-bottom: 2px;
+}
+
+/* One member a card (Payments has the same cards, with buttons under each). */
+:is(.mb, .pay) .member {
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+
+:is(.mb, .pay) .member-head {
+  padding: 14px;
+}
+
+:is(.mb, .pay) .member .avatar {
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .mb .member:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow);
+  }
+}
+
+/* Laptop: roomier cards. */
+@media (min-width: 1024px) {
+  :is(.mb, .pay) .list {
+    gap: 14px;
+  }
+
+  :is(.mb, .pay) .member-head {
+    gap: 16px;
+    padding: 18px 20px;
+  }
+
+  :is(.mb, .pay) .member .avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  :is(.mb, .pay) .member .row-title {
+    font-size: 1.02rem;
+  }
+
+  :is(.mb, .pay) .member .row-sub {
+    font-size: 0.84rem;
+  }
+}
+
+/* ---- Payments page ---- */
+
+/* Record Payment: the one button that stands out on the page, in both themes. */
+:root .pay .btn.primary.record {
+  flex-grow: 2;
+  background: var(--grad-brand);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--shadow-brand);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    filter 0.15s;
+}
+
+@media (hover: hover) {
+  .pay .btn.record:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px -6px rgb(37 99 235 / 0.65);
+  }
+}
+
+.pay .btn.record:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 3px 8px -3px rgb(37 99 235 / 0.6);
+}
+
+/* Laptop: the buttons keep their own width at the left instead of stretching across the card. */
+@media (min-width: 1024px) {
+  .pay .member-body {
+    padding: 14px 20px 16px;
+  }
+
+  .pay .member-body .row-actions {
+    gap: 10px;
+  }
+
+  .pay .member-body .row-actions .btn {
+    flex: none;
+    min-height: 40px;
+    padding: 0 18px;
+    font-size: 0.86rem;
+  }
+
+  .pay .member-body .row-actions .btn.record {
+    padding: 0 22px;
+  }
+}
+
+/* ---- Expense form ---- */
+
+/* A field title with a small action at its right end ("+ New" category). */
+.field > .field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-head .link {
+  font-size: 0.78rem;
+}
+
+/* The receipt box: a dashed area to tap while empty, a plain row once a file is there. */
+.upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--border-strong);
+  background: var(--surface);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.upload:hover,
+.upload:focus-within {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+/* The real file input stays in the page for the keyboard and screen readers, but out of sight. */
+.upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.upload b {
+  font-weight: 600;
+}
+
+.upload small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.upload-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.upload-icon .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.upload.has {
+  flex-direction: row;
+  gap: 10px;
+  padding: 10px 12px;
+  border-style: solid;
+  text-align: left;
+  cursor: default;
+}
+
+.upload.has:hover {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.upload.has .upload-icon {
+  margin-bottom: 0;
+}
+
+/* ---- Light theme: the flat white look of the Renewals page on every screen ---- */
+
+/* One flat blue instead of the blue-to-indigo sweep. */
+:root:not([data-theme='dark']) .btn.primary,
+:root:not([data-theme='dark']) .tab.active,
+:root:not([data-theme='dark']) .chip.active,
+:root:not([data-theme='dark']) .plan.active,
+:root:not([data-theme='dark']) .sheet-head {
+  background: var(--brand);
+}
+
+/* Member and profile cards: plain white instead of the lilac tint. */
+:root:not([data-theme='dark']) .member-head,
+:root:not([data-theme='dark']) .hero-head {
+  background: var(--surface);
+}
+
+/* Summary tiles: an even soft tint and a thin border. */
+:root:not([data-theme='dark']) .stat {
+  border-width: 1px;
+  background: color-mix(in srgb, var(--tint) 55%, var(--surface));
+}
+
+:root:not([data-theme='dark']) .stat > div span {
+  color: var(--muted-2);
+}
+
+:root:not([data-theme='dark']) .search {
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* The loading screen after login, and the chart tooltip. */
+:root:not([data-theme='dark']) .login-wrap {
+  background: var(--bg);
+}
+
+:root:not([data-theme='dark']) .chart-tip {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ---- Laptop: the main pages use the width of the screen ---- */
+
+/* A group of blocks that becomes one column of a two-column page on a laptop. On a phone the wrapper is not there at all. */
+.col {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  /* A member's profile and a product's ledger stay a narrow column. */
+  .app:has(> .dash, > .rn, > .mb, > .pay, > .ex, > .st, > .set, > .wa) {
+    max-width: 1360px;
+  }
+
+  .topbar {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+
+  .page {
+    padding: 0 28px;
+    gap: 16px;
+  }
+
+  .ex .filters {
+    justify-content: space-between;
+  }
+
+  .ex .stepper.wide {
+    flex: none;
+    min-width: 300px;
+  }
+
+  .dash .filters .search {
+    flex: none;
+    width: 220px;
+  }
+
+  .dash .stat-grid,
+  .rn-stats {
+    gap: 20px;
+  }
+
+  .rn .list-head {
+    padding: 12px 20px;
+  }
+
+  .rn .rn-row {
+    padding: 14px 20px;
+  }
+
+  /* Lists of cards: as many across as fit. */
+  .mb .list,
+  .pay .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 14px 16px;
+  }
+
+  .pay .list {
+    grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  }
+
+  .list > .empty {
+    grid-column: 1 / -1;
+  }
+}
+
+/* From here there is room for two columns; a smaller laptop keeps one. */
+@media (min-width: 1200px) {
+  /* Two columns of blocks (Expenses, Settings, WhatsApp); anything outside a column runs across both. */
+  .page.split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px 20px;
+  }
+
+  .page.split > * {
+    grid-column: 1 / -1;
+  }
+
+  .page.split > .col {
+    grid-column: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .col > .section-title:first-child {
+    margin-top: 0;
+  }
+
+  /* Dashboard: the cards pair up, two a row. */
+  .page.dash {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+  }
+
+  .page.dash > * {
+    grid-column: 1 / -1;
+  }
+
+  .page.dash > .half {
+    grid-column: auto;
+  }
+
+  /* The two tall cards (details and the month table) share the last row. */
+  .page.dash > .late {
+    order: 1;
+  }
+
+  .dash > .card {
+    padding: 18px 20px;
+  }
+
+  /* The summary card is as tall as the chart beside it: its three boxes take up the difference. */
+  .dash-sum {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dash-sum .tri {
+    flex: 1;
+    gap: 12px;
+  }
+
+  .dash-sum .tri-box {
+    justify-content: center;
+    padding: 14px;
+  }
+
+  .dash-sum .tri-box b {
+    font-size: 1.3rem;
+  }
+
+  /* Expenses: the month's total and categories on the left, the list on the right. */
+  .page.ex {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+}
+
+/* Renewals on a full-size laptop: one line per member (who, the three facts, the buttons), lined up down the list. */
+@media (min-width: 1340px) {
+  .rn .rn-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 380px;
+    align-items: center;
+    gap: 12px 20px;
+  }
+
+  .rn .rn-row .rn-facts {
+    margin-top: 0;
+  }
+
+  .rn .rn-row .member-body {
+    display: contents;
+  }
+
+  .rn .rn-row .member-body .note {
+    grid-column: 1 / -1;
+    order: 1;
+    margin: 0;
+  }
+
+  .rn .rn-row .member-body .row-actions {
+    justify-content: flex-end;
+    margin-top: 0;
+  }
+
+  .rn .rn-row .member-body .row-actions .btn {
+    flex: none;
+    padding: 0 12px;
+  }
 }

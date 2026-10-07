@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { getToken, setToken, useLoad } from './api.js'
+import Sidebar from './components/Sidebar.jsx'
 import { Icon, Loading } from './components/ui.jsx'
 import { AppContext } from './context.js'
 import Dashboard from './pages/Dashboard.jsx'
@@ -83,21 +84,24 @@ function Shell({ onLogout }) {
   return (
     <AppContext.Provider value={{ ...boot.data, reloadApp: boot.reload, openAdd, logout: onLogout }}>
       <>
-        <div className="app">
-          <Routes>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/renewals" element={<Renewals />} />
-            <Route path="/members" element={<Members />} />
-            <Route path="/members/:id" element={<MemberProfile />} />
-            <Route path="/payments" element={<Payments />} />
-            <Route path="/expenses" element={<Expenses />} />
-            <Route path="/stock" element={<Stock />} />
-            <Route path="/stock/:id" element={<StockLedger />} />
-            <Route path="/more" element={<More />} />
-            <Route path="/whatsapp" element={<WhatsApp />} />
-            <Route path="*" element={<Navigate to={HOME} replace />} />
-          </Routes>
-        </div>
+        <Sidebar />
+        <main className="main">
+          <div className="app">
+            <Routes>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/renewals" element={<Renewals />} />
+              <Route path="/members" element={<Members />} />
+              <Route path="/members/:id" element={<MemberProfile />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/stock" element={<Stock />} />
+              <Route path="/stock/:id" element={<StockLedger />} />
+              <Route path="/more" element={<More />} />
+              <Route path="/whatsapp" element={<WhatsApp />} />
+              <Route path="*" element={<Navigate to={HOME} replace />} />
+            </Routes>
+          </div>
+        </main>
         <nav className="nav">
           <div className="nav-inner">
             <NavLink to="/renewals">

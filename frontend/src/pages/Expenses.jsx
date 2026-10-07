@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { addMonths } from '../../../shared/domain.mjs'
 import { useLoad } from '../api.js'
 import { ShareBars } from '../components/charts.jsx'
-import { Icon, Loading } from '../components/ui.jsx'
+import { Badge, Icon, Loading } from '../components/ui.jsx'
 import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { MONTHS, MONTH_NAMES, fmtDate, money } from '../format.js'
@@ -29,7 +29,7 @@ export default function Expenses() {
         <h1>Expenses</h1>
         <TopMenu />
       </header>
-      <div className="page">
+      <div className="page ex split">
       <div className="filters">
         <div className="stepper wide" role="group" aria-label="Month">
           <button className="btn small" onClick={() => step(-1)} aria-label="Previous month">
@@ -51,47 +51,55 @@ export default function Expenses() {
         <Loading error={error} />
       ) : (
         <>
-          <div className="stat orange">
-            <span className="stat-icon">
-              <Icon name="receipt" />
-            </span>
-            <div>
-              <b>{money(data.total)}</b>
-              <span>
-                spent in {MONTH_NAMES[Number(month.slice(5)) - 1]} · {plural(data.items.length, 'expense')}
+          <div className="col">
+            <div className="stat orange">
+              <span className="stat-icon">
+                <Icon name="receipt" />
               </span>
+              <div>
+                <b>{money(data.total)}</b>
+                <span>
+                  spent in {MONTH_NAMES[Number(month.slice(5)) - 1]} · {plural(data.items.length, 'expense')}
+                </span>
+              </div>
             </div>
+
+            {data.byCategory.length > 0 && (
+              <div className="card">
+                <div className="chart-head">
+                  <h3>By category</h3>
+                </div>
+                <ShareBars tone="expense wide" rows={data.byCategory.map((c) => ({ label: c.name, value: c.total }))} format={money} />
+              </div>
+            )}
           </div>
 
-          {data.byCategory.length > 0 && (
-            <div className="card">
-              <div className="chart-head">
-                <h3>By category</h3>
-              </div>
-              <ShareBars tone="expense wide" rows={data.byCategory.map((c) => ({ label: c.name, value: c.total }))} format={money} />
-            </div>
-          )}
-
-          <div className="list">
-            {data.items.map((e) => (
-              <button key={e.id} className="card row" onClick={() => setSheet(e)} aria-label={`Edit ${e.category} expense of ${money(e.amount)}`}>
-                <span className="avatar expense">
-                  <Icon name="receipt" />
-                </span>
-                <div className="row-main">
-                  <div className="row-title">{e.category}</div>
-                  <div className="row-sub">
-                    {fmtDate(e.date)} · {e.mode}
-                    {e.note ? ` · ${e.note}` : ''}
+          <div className="col">
+            <div className="list">
+              {data.items.map((e) => (
+                <button key={e.id} className="card row" onClick={() => setSheet(e)} aria-label={`Edit ${e.category} expense of ${money(e.amount)}`}>
+                  <span className="avatar expense">
+                    <Icon name="receipt" />
+                  </span>
+                  <div className="row-main">
+                    <div className="row-title">{e.name || e.category}</div>
+                    <div className="row-sub">
+                      {e.name ? `${e.category} · ` : ''}
+                      {fmtDate(e.date)} · {e.mode}
+                      {e.paidTo ? ` · ${e.paidTo}` : ''}
+                      {e.invoiceNo ? ` · #${e.invoiceNo}` : ''}
+                      {e.note ? ` · ${e.note}` : ''}
+                      {e.receiptName ? ' · Receipt attached' : ''}
+                    </div>
                   </div>
-                </div>
-                <div className="row-side">
-                  <b>{money(e.amount)}</b>
-                  <span className="row-sub">Tap to fix</span>
-                </div>
-              </button>
-            ))}
-            {!data.items.length && <div className="empty">No expenses in this month. Tap + Add expense.</div>}
+                  <div className="row-side">
+                    <b>{money(e.amount)}</b>
+                    {e.status === 'pending' ? <Badge tone="warn">Pending</Badge> : <span className="row-sub">Tap to fix</span>}
+                  </div>
+                </button>
+              ))}
+              {!data.items.length && <div className="empty">No expenses in this month. Tap + Add expense.</div>}
+            </div>
           </div>
         </>
       )}

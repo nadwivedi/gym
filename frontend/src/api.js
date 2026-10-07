@@ -35,6 +35,19 @@ export async function api(path, { method = 'GET', body } = {}) {
   return data
 }
 
+// Sends one file as the whole request (a receipt photo or PDF); `api` above only sends JSON.
+export async function upload(path, file) {
+  let res
+  try {
+    res = await fetch('/api' + path, { method: 'PUT', headers: { 'Content-Type': file.type, Authorization: `Bearer ${getToken()}` }, body: file })
+  } catch {
+    throw new ApiError('Cannot reach the gym server. Is it running?', 0, {})
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new ApiError(data.error || 'The file could not be saved', res.status, data)
+  return data
+}
+
 // Saves a member, asking once if the phone number already belongs to someone else.
 export async function saveWithDuplicateCheck(send) {
   try {

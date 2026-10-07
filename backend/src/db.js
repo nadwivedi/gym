@@ -93,6 +93,28 @@ export const Expense = model(
       date: { type: String, required: true, index: true },
       mode: { type: String, default: 'Cash' },
       note: { type: String, default: '' },
+      // Optional details of the bill. Expenses from before these existed simply do not have them.
+      name: { type: String, default: '' },
+      paidTo: { type: String, default: '' },
+      invoiceNo: { type: String, default: '' },
+      // 'paid' or 'pending'. A label only: the totals count an expense either way.
+      status: { type: String, default: 'paid' },
+      // Filled while a receipt file is kept in ExpenseReceipt.
+      receiptName: { type: String, default: '' },
+      receiptSize: { type: Number, default: 0 },
+    },
+    opts,
+  ),
+)
+
+// The photo or PDF of one expense's receipt. Kept apart so the expense lists stay small.
+export const ExpenseReceipt = model(
+  'ExpenseReceipt',
+  new Schema(
+    {
+      expenseId: { type: Schema.Types.ObjectId, required: true, unique: true },
+      mime: String,
+      data: Buffer,
     },
     opts,
   ),
@@ -145,7 +167,7 @@ const Settings = model(
   new Schema(
     {
       _id: String,
-      gymName: { type: String, default: 'My Gym' },
+      gymName: { type: String, default: 'Gym Solution' },
       // Owner login: 10-digit mobile number + password.
       loginMobile: { type: String, default: '' },
       passHash: { type: String, default: '' },

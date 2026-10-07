@@ -26,55 +26,59 @@ export default function More() {
         <h1>Settings</h1>
         <TopMenu />
       </header>
-      <div className="page">
-        <Link to="/whatsapp" className="card row">
-          <span className="avatar wa">
-            <Icon name="chat" />
-          </span>
-          <div className="row-main">
-            <div className="row-title">WhatsApp reminders</div>
-            <div className="row-sub">Automatic renewal messages: link your number, message text, sent log.</div>
-          </div>
-          <span className="flip">
-            <Icon name="back" />
-          </span>
-        </Link>
-        <Plans />
-        <ExpenseCategories />
+      <div className="page set split">
+        <div className="col">
+          <Link to="/whatsapp" className="card row">
+            <span className="avatar wa">
+              <Icon name="chat" />
+            </span>
+            <div className="row-main">
+              <div className="row-title">WhatsApp reminders</div>
+              <div className="row-sub">Automatic renewal messages: link your number, message text, sent log.</div>
+            </div>
+            <span className="flip">
+              <Icon name="back" />
+            </span>
+          </Link>
+          <Plans />
+          <ExpenseCategories />
 
-        <div className="section-title">Settings</div>
-        <Settings />
+          <div className="section-title">Settings</div>
+          <Settings />
 
-        <div className="section-title">Appearance</div>
-        <Appearance />
-
-        <div className="section-title">Backup</div>
-        <div className="card form">
-          <p className="hint">Download your records regularly and keep a copy somewhere safe. The CSV files open in Excel.</p>
-          <button className="btn block" disabled={exp.busy} onClick={() => get('/export/members.csv', `members-${today}.csv`)}>
-            Members (Excel / CSV)
-          </button>
-          <button className="btn block" disabled={exp.busy} onClick={() => get('/export/payments.csv', `payments-${today}.csv`)}>
-            Payments (Excel / CSV)
-          </button>
-          <button className="btn block" disabled={exp.busy} onClick={() => get('/export/expenses.csv', `expenses-${today}.csv`)}>
-            Expenses (Excel / CSV)
-          </button>
-          <button className="btn block" disabled={exp.busy} onClick={() => get('/export/stock.csv', `stock-${today}.csv`)}>
-            Stock sales and buys (Excel / CSV)
-          </button>
-          <button className="btn block" disabled={exp.busy} onClick={() => get('/export/backup.json', `gym-backup-${today}.json`)}>
-            Full backup file
-          </button>
-          <ErrorBox error={exp.error} />
+          <div className="section-title">Appearance</div>
+          <Appearance />
         </div>
 
-        <div className="section-title">Login details</div>
-        <LoginDetails />
-        <button className="btn danger block" onClick={logout}>
-          <Icon name="logout" />
-          Log out
-        </button>
+        <div className="col">
+          <div className="section-title">Backup</div>
+          <div className="card form">
+            <p className="hint">Download your records regularly and keep a copy somewhere safe. The CSV files open in Excel.</p>
+            <button className="btn block" disabled={exp.busy} onClick={() => get('/export/members.csv', `members-${today}.csv`)}>
+              Members (Excel / CSV)
+            </button>
+            <button className="btn block" disabled={exp.busy} onClick={() => get('/export/payments.csv', `payments-${today}.csv`)}>
+              Payments (Excel / CSV)
+            </button>
+            <button className="btn block" disabled={exp.busy} onClick={() => get('/export/expenses.csv', `expenses-${today}.csv`)}>
+              Expenses (Excel / CSV)
+            </button>
+            <button className="btn block" disabled={exp.busy} onClick={() => get('/export/stock.csv', `stock-${today}.csv`)}>
+              Stock sales and buys (Excel / CSV)
+            </button>
+            <button className="btn block" disabled={exp.busy} onClick={() => get('/export/backup.json', `gym-backup-${today}.json`)}>
+              Full backup file
+            </button>
+            <ErrorBox error={exp.error} />
+          </div>
+
+          <div className="section-title">Login details</div>
+          <LoginDetails />
+          <button className="btn danger block" onClick={logout}>
+            <Icon name="logout" />
+            Log out
+          </button>
+        </div>
       </div>
     </>
   )

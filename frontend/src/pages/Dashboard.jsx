@@ -42,7 +42,7 @@ export default function Dashboard() {
     return (
       <>
         {header}
-        <div className="page">
+        <div className="page dash">
           <Loading error={error} />
         </div>
       </>
@@ -64,7 +64,7 @@ export default function Dashboard() {
   return (
     <>
       {header}
-      <div className="page" style={{ opacity: loading && !data ? 0.6 : 1 }}>
+      <div className="page dash" style={{ opacity: loading && !data ? 0.6 : 1 }}>
         <div className="filters">
           <div className="stepper" role="group" aria-label="Year">
             <button className="btn small" disabled={year <= stats.firstYear} onClick={() => pickYear(year - 1)} aria-label="Previous year">
@@ -108,7 +108,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="card">
+        <div className="card half dash-sum">
           <div className="chart-head">
             <h3>{scopeName}</h3>
             <p>{month ? 'Income, expenses and profit for the selected month.' : 'Income, expenses and profit for the whole year.'}</p>
@@ -151,7 +151,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="card">
+        <div className="card half">
           <div className="chart-head">
             <h3>Income vs expenses</h3>
             <p>Each month of {stats.year}. Tap a month to see its details.</p>
@@ -172,7 +172,7 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="card">
+        <div className="card half">
           <div className="chart-head">
             <h3>Profit by month</h3>
             <p>Income minus expenses, {stats.year}. A bar below the line is a loss.</p>
@@ -193,7 +193,7 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="card">
+        <div className="card half late">
           <div className="chart-head">
             <h3>Details · {scopeName}</h3>
           </div>
@@ -240,7 +240,7 @@ export default function Dashboard() {
           {categoryRows.length ? <ShareBars tone="expense wide" rows={categoryRows} format={money} /> : <p className="hint">No expenses recorded for this period.</p>}
         </div>
 
-        <div className="card">
+        <div className="card half">
           <div className="chart-head">
             <h3>Active members</h3>
             <p>Members with a running membership at the end of each month, {stats.year}.</p>
@@ -253,7 +253,7 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="card">
+        <div className="card half late">
           <div className="chart-head">
             <h3>Month by month, {stats.year}</h3>
           </div>

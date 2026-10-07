@@ -4,12 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#1f2a3c" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="description" content="GymSolution is a complete gym management software for gym owners: renewals, member records, automatic WhatsApp reminders, expenses, monthly profit, supplement stock inventory, multi-gym, staff and trainer panels." />
     <title>GymSolution – Complete Gym Management Software</title>
     <script>
       // Dark mode picked in Settings (src/theme.js): set before the first paint, so the page never flashes light.
-      if (localStorage.getItem('gym_theme') === 'dark') document.documentElement.dataset.theme = 'dark'
+      if (localStorage.getItem('gym_theme') === 'dark') {
+        document.documentElement.dataset.theme = 'dark'
+        document.querySelector('meta[name="theme-color"]').content = '#141d30'
+      }
     </script>
   </head>
   <body>

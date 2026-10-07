@@ -10,7 +10,7 @@ const ITEMS = [
 ]
 
 // "More" button at the right of every top bar: Dashboard, WhatsApp, Settings and Log out.
-export default function TopMenu() {
+export default function TopMenu({ icon = 'menu' }) {
   const { logout } = useApp()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -30,7 +30,7 @@ export default function TopMenu() {
   return (
     <div className="top-menu" ref={ref}>
       <button className="btn small" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open}>
-        <Icon name={open ? 'close' : 'menu'} />
+        <Icon name={open ? 'close' : icon} />
         More
       </button>
       {open && (

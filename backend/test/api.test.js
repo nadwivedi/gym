@@ -444,6 +444,61 @@ test('expenses: default categories, add, edit, delete, and the dashboard profit'
   assert.match(await ok('GET', '/export/expenses.csv'), /Date,Category,Amount/)
 })
 
+test('expenses: bill details and the receipt file', async () => {
+  const boot = await ok('GET', '/bootstrap')
+  const categoryId = boot.expenseCategories[0].id
+  const month = today.slice(0, 7)
+  const before = await ok('GET', '/stats')
+
+  // The details are optional; an unknown status is saved as paid.
+  const plain = await ok('POST', '/expenses', { amount: 100, date: today, categoryId })
+  assert.deepEqual([plain.name, plain.paidTo, plain.invoiceNo, plain.status, plain.receiptName], ['', '', '', 'paid', ''])
+  assert.equal((await ok('POST', '/expenses', { amount: 100, date: today, categoryId, status: 'whatever' })).status, 'paid')
+  const bill = await ok('POST', '/expenses', { amount: 4200, date: today, categoryId, name: ' October power bill ', paidTo: 'City Power', invoiceNo: 'INV-88', status: 'pending', note: 'Meter 2' })
+  assert.deepEqual([bill.name, bill.paidTo, bill.invoiceNo, bill.status], ['October power bill', 'City Power', 'INV-88', 'pending'])
+  // A pending expense still counts in the month.
+  assert.equal((await ok('GET', '/stats')).total.expense - before.total.expense, 4400)
+  const edited = await ok('PATCH', `/expenses/${bill.id}`, { status: 'paid', paidTo: 'City Power Ltd' })
+  assert.deepEqual([edited.status, edited.paidTo, edited.name], ['paid', 'City Power Ltd', 'October power bill'])
+  assert.match(await ok('GET', '/export/expenses.csv'), /Meter 2,October power bill,City Power Ltd,INV-88,paid,\r\n/)
+
+  // The receipt travels as the raw file, not as JSON.
+  const send = (id, type, bytes, name = 'bill.pdf') =>
+    fetch(`${base}/expenses/${id}/receipt?name=${encodeURIComponent(name)}`, { method: 'PUT', headers: { 'Content-Type': type, Authorization: `Bearer ${token}` }, body: bytes })
+  const pdf = Buffer.from('%PDF-1.4 a small receipt')
+  let res = await send(bill.id, 'application/pdf', pdf)
+  assert.equal(res.status, 200)
+  assert.deepEqual(await res.json().then((e) => [e.receiptName, e.receiptSize]), ['bill.pdf', pdf.length])
+  assert.deepEqual(
+    (await ok('GET', `/expenses?month=${month}`)).items.find((e) => e.id === bill.id).receiptName,
+    'bill.pdf',
+  )
+  res = await fetch(`${base}/expenses/${bill.id}/receipt`, { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(res.headers.get('content-type'), 'application/pdf')
+  assert.deepEqual(Buffer.from(await res.arrayBuffer()), pdf)
+  // A new file replaces the old one.
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3])
+  assert.equal((await send(bill.id, 'image/png', png, 'photo.png')).status, 200)
+  res = await fetch(`${base}/expenses/${bill.id}/receipt`, { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(res.headers.get('content-type'), 'image/png')
+  assert.deepEqual(Buffer.from(await res.arrayBuffer()), png)
+  assert.match(await ok('GET', '/export/expenses.csv'), /INV-88,paid,yes\r\n/)
+
+  // Refused: not a photo or PDF, an empty file, a file over 8 MB, no login, an expense that is not there.
+  assert.equal((await send(bill.id, 'text/html', Buffer.from('<b>hi</b>'))).status, 400)
+  assert.equal((await send(bill.id, 'application/pdf', Buffer.alloc(0))).status, 400)
+  assert.equal((await send(bill.id, 'image/jpeg', Buffer.alloc(8 * 1024 * 1024 + 1))).status, 413)
+  assert.equal((await fetch(`${base}/expenses/${bill.id}/receipt`)).status, 401)
+  assert.equal((await call('GET', `/expenses/${plain.id}/receipt`)).status, 404)
+
+  // Taking the receipt off, and deleting an expense together with its receipt.
+  assert.deepEqual(await ok('DELETE', `/expenses/${bill.id}/receipt`).then((e) => [e.receiptName, e.receiptSize]), ['', 0])
+  assert.equal((await call('GET', `/expenses/${bill.id}/receipt`)).status, 404)
+  assert.equal((await send(bill.id, 'application/pdf', pdf)).status, 200)
+  await ok('DELETE', `/expenses/${bill.id}`)
+  assert.equal(await mongoose.connection.db.collection('expensereceipts').countDocuments(), 0)
+})
+
 test('exports and settings', async () => {
   const csv = await ok('GET', '/export/members.csv')
   assert.match(csv, /No,Name,Phone/)

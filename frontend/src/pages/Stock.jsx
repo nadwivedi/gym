@@ -5,13 +5,22 @@ import { useLoad } from '../api.js'
 import { Badge, Icon, Loading } from '../components/ui.jsx'
 import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
-import { MONTHS, MONTH_NAMES, fmtDate, money, moveTitle, stockBadge } from '../format.js'
+import { MONTHS, MONTH_NAMES, fmtDate, money, moveTitle } from '../format.js'
 import { MoveDetailSheet, MoveSheet, ProductSheet } from '../sheets/StockSheets.jsx'
 
 const TABS = [
   { key: 'items', label: 'Products' },
   { key: 'history', label: 'Sales and buys' },
 ]
+
+// A product's state: the server's stock level, or "off" when it is not sold any more.
+const statusOf = (p) => (p.active ? p.status : 'off')
+const STATUS = {
+  ok: { label: 'In Stock', tone: 'ok', icon: 'check', card: 'green' },
+  low: { label: 'Low Stock', tone: 'warn', icon: 'alert', card: 'orange' },
+  out: { label: 'Out of Stock', tone: 'danger', icon: 'close', card: 'red' },
+  off: { label: 'Switched off', tone: '' },
+}
 
 // Things the gym sells: protein, creatine, mass gainer, T-shirts, lowers…
 export default function Stock() {
@@ -36,25 +45,29 @@ export default function Stock() {
         </h1>
         <TopMenu />
       </header>
-      <div className="page">
-        <div className="btn-grid three">
-          <button className="btn small primary" onClick={() => setSheet({ kind: 'sell' })}>
-            + Sell
-          </button>
-          <button className="btn small" onClick={() => setSheet({ kind: 'buy' })}>
-            + Buy stock
-          </button>
-          <button className="btn small" onClick={() => setSheet({ kind: 'product' })}>
-            + New product
-          </button>
-        </div>
-
-        <div className="tabs" role="tablist">
-          {TABS.map((t) => (
-            <button key={t.key} role="tab" aria-selected={tab === t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => setParams({ tab: t.key }, { replace: true })}>
-              {t.label}
+      <div className="page st">
+        <div className="st-bar">
+          <div className="st-actions">
+            <button className="btn small" onClick={() => setSheet({ kind: 'sell' })}>
+              <Icon name="rupee" />
+              Sell
             </button>
-          ))}
+            <button className="btn small" onClick={() => setSheet({ kind: 'buy' })}>
+              <Icon name="box" />
+              Buy stock
+            </button>
+            <button className="btn small primary" onClick={() => setSheet({ kind: 'product' })}>
+              <Icon name="plus" />
+              Add Item
+            </button>
+          </div>
+          <div className="tabs" role="tablist">
+            {TABS.map((t) => (
+              <button key={t.key} role="tab" aria-selected={tab === t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => setParams({ tab: t.key }, { replace: true })}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {tab === 'items' ? <Products stock={stock} onOpen={setSheet} /> : <History key={historyKey} onOpen={(move) => setSheet({ kind: 'move', move })} />}
@@ -71,93 +84,160 @@ export default function Stock() {
 
 function Products({ stock, onOpen }) {
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('all')
+  const [status, setStatus] = useState('all')
   if (!stock.data) return <Loading error={stock.error} />
   const { products, totals } = stock.data
-  const q = search.trim().toLowerCase()
-  const shown = products.filter((p) => !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
-  const selling = shown.filter((p) => p.active)
-  const groups = [...new Set(selling.map((p) => p.category))]
-  const off = shown.filter((p) => !p.active)
 
   if (!products.length) {
     return (
-      <div className="empty">
-        No products yet. Tap <b>+ New product</b> to add protein, creatine, T-shirts or anything else you sell.
+      <div className="card blank info">
+        <span className="blank-icon">
+          <Icon name="box" />
+        </span>
+        <h3>No items yet</h3>
+        <p>Add protein, creatine, T-shirts or anything else you sell.</p>
+        <button className="btn small primary" onClick={() => onOpen({ kind: 'product' })}>
+          <Icon name="plus" />
+          Add Item
+        </button>
       </div>
     )
   }
 
+  const count = (key) => products.filter((p) => statusOf(p) === key).length
+  const off = count('off')
+  const categories = [...new Set(products.map((p) => p.category))]
+  const q = search.trim().toLowerCase()
+  const shown = products
+    .filter((p) => !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+    .filter((p) => category === 'all' || p.category === category)
+    .filter((p) => status === 'all' || statusOf(p) === status)
+    // Products still on sale first, the switched-off ones at the end.
+    .sort((a, b) => b.active - a.active)
+  const clear = () => {
+    setSearch('')
+    setCategory('all')
+    setStatus('all')
+  }
+
   return (
     <>
-      <div className="stat-grid">
-        <div className="stat green">
+      <div className="tiles">
+        <button className={`stat ${status === 'all' ? 'on' : ''}`} aria-pressed={status === 'all'} onClick={() => setStatus('all')}>
           <span className="stat-icon">
             <Icon name="box" />
           </span>
           <div>
-            <b>{totals.units}</b>
-            <span>Pieces in stock</span>
-            <span>worth {money(totals.value)}</span>
+            <b>{products.length}</b>
+            <span>Total Items</span>
+            {off > 0 && <span>{off} switched off</span>}
           </div>
-        </div>
-        <div className={`stat ${totals.low || totals.out ? 'red' : 'purple'}`}>
-          <span className="stat-icon">
-            <Icon name="receipt" />
-          </span>
-          <div>
-            <b>{totals.low + totals.out}</b>
-            <span>Need buying</span>
-            <span>
-              {totals.out} out · {totals.low} running low
+        </button>
+        {['ok', 'low', 'out'].map((key) => (
+          <button key={key} className={`stat ${STATUS[key].card} ${status === key ? 'on' : ''}`} aria-pressed={status === key} onClick={() => setStatus(key)}>
+            <span className="stat-icon">
+              <Icon name={STATUS[key].icon} />
             </span>
-          </div>
-        </div>
+            <div>
+              <b>{count(key)}</b>
+              <span>{STATUS[key].label}</span>
+            </div>
+          </button>
+        ))}
       </div>
 
-      <input className="search" type="search" placeholder="Search products" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search products" />
-
-      {groups.map((category) => (
-        <div key={category} className="list">
-          <div className="section-title">{category}</div>
-          {selling
-            .filter((p) => p.category === category)
-            .map((p) => (
-              <ProductCard key={p.id} p={p} onOpen={onOpen} />
-            ))}
-        </div>
-      ))}
-      {off.length > 0 && (
-        <div className="list">
-          <div className="section-title">Not selling now</div>
-          {off.map((p) => (
-            <ProductCard key={p.id} p={p} onOpen={onOpen} />
+      <div className="searchbar st-filters">
+        <label className="searchbar-box">
+          <Icon name="search" />
+          <input className="search" type="search" placeholder="Search items or categories..." aria-label="Search items" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </label>
+        <select className="search" aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="all">All categories</option>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
           ))}
+        </select>
+        <select className="search" aria-label="Stock status" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="all">All statuses</option>
+          {Object.entries(STATUS).map(([key, st]) => (
+            <option key={key} value={key}>
+              {st.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {shown.length ? (
+        <div className="card rlist">
+          <div className="list-head">
+            <b>
+              {shown.length} item{shown.length === 1 ? '' : 's'}
+            </b>
+            <span>
+              {totals.units} piece{totals.units === 1 ? '' : 's'} in stock · worth {money(totals.value)}
+            </span>
+          </div>
+          <table className="rtable">
+            <thead>
+              <tr>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((p) => (
+                <ProductRow key={p.id} p={p} onOpen={onOpen} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="card blank plain">
+          <span className="blank-icon">
+            <Icon name="search" />
+          </span>
+          <h3>No items match</h3>
+          <p>Try another name, category or status.</p>
+          <button className="btn small" onClick={clear}>
+            Clear filters
+          </button>
         </div>
       )}
-      {!shown.length && <div className="empty">No product matches “{search}”.</div>}
     </>
   )
 }
 
-function ProductCard({ p, onOpen }) {
-  const badge = stockBadge(p)
+// One product: a table row on a wide screen, a card on a narrow one (index.css lays the same cells out both ways).
+function ProductRow({ p, onOpen }) {
+  const st = STATUS[statusOf(p)]
   return (
-    <div className="card member">
-      <Link to={`/stock/${p.id}`} className="member-head" aria-label={`${p.name}: stock ledger`}>
-        <span className={`avatar stock ${p.active ? '' : 'off'}`}>
-          <Icon name="box" />
-        </span>
-        <div className="row-main">
-          <div className="row-title">{p.name}</div>
-          <div className="row-sub">
-            Sell at {money(p.sellPrice)}
-            {p.buyPrice > 0 && ` · bought at ${money(p.buyPrice)}`}
-          </div>
-        </div>
-        <div className="row-side">{p.active ? <Badge tone={badge.tone}>{badge.text}</Badge> : <Badge>Switched off</Badge>}</div>
-      </Link>
-      <div className="member-body">
-        <div className="row-actions">
+    <tr className={p.active ? '' : 'off'}>
+      <td className="rt-item">
+        <Link to={`/stock/${p.id}`} aria-label={`${p.name}: stock ledger`}>
+          <span className={`avatar stock ${p.active ? '' : 'off'}`}>
+            <Icon name="box" />
+          </span>
+          <b>{p.name}</b>
+        </Link>
+      </td>
+      <td data-label="Category">{p.category}</td>
+      <td data-label="Quantity">
+        <b>{p.stock}</b>
+      </td>
+      <td data-label="Price">
+        <b>{money(p.sellPrice)}</b>
+        {p.buyPrice > 0 && <small>Cost {money(p.buyPrice)}</small>}
+      </td>
+      <td className="rt-status">
+        <Badge tone={st.tone}>{st.label}</Badge>
+      </td>
+      <td className="rt-acts">
+        <div>
           {p.active && (
             <>
               <button className="btn small primary" disabled={p.stock <= 0} onClick={() => onOpen({ kind: 'sell', product: p })}>
@@ -173,8 +253,8 @@ function ProductCard({ p, onOpen }) {
             Ledger
           </Link>
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   )
 }
 

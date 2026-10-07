@@ -8,7 +8,7 @@ import { fmtDate, money } from '../format.js'
 import PaymentSheet from '../sheets/PaymentSheet.jsx'
 
 const TABS = [
-  { key: 'dues', label: 'Pending dues' },
+  { key: 'dues', label: 'Pending Dues' },
   { key: 'recent', label: 'Received' },
 ]
 
@@ -22,7 +22,7 @@ export default function Payments() {
         <h1>Payments</h1>
         <TopMenu />
       </header>
-      <div className="page">
+      <div className="page pay">
         <div className="tabs" role="tablist">
           {TABS.map((t) => (
             <button key={t.key} role="tab" aria-selected={tab === t.key} className={`tab ${tab === t.key ? 'active' : ''}`} onClick={() => setParams({ tab: t.key }, { replace: true })}>
@@ -64,8 +64,9 @@ function Dues() {
       <div className="list">
         {rows.map((s) => (
           <MemberRow key={s.id} s={s} note={promiseNote(s, today)}>
-            <button className="btn small primary" onClick={() => setPayFor(s)}>
-              Record payment
+            <button className="btn small primary record" onClick={() => setPayFor(s)}>
+              <Icon name="rupee" />
+              Record Payment
             </button>
             <ContactButtons s={s} />
           </MemberRow>

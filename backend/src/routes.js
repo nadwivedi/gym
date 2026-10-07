@@ -6,6 +6,7 @@ import {
   DEFAULT_STOCK_CATEGORIES,
   Expense,
   ExpenseCategory,
+  ExpenseReceipt,
   Member,
   Payment,
   Period,
@@ -131,8 +132,16 @@ async function expenseFields(b, creating) {
   }
   if (b.mode !== undefined) f.mode = modeOf(b.mode)
   if (b.note !== undefined) f.note = str(b.note, 300)
+  if (b.name !== undefined) f.name = str(b.name, 80)
+  if (b.paidTo !== undefined) f.paidTo = str(b.paidTo, 80)
+  if (b.invoiceNo !== undefined) f.invoiceNo = str(b.invoiceNo, 40)
+  if (b.status !== undefined) f.status = b.status === 'pending' ? 'pending' : 'paid'
   return f
 }
+
+// A receipt is a photo or a PDF, sent as the body of the request.
+const RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+const receiptBody = express.raw({ type: () => true, limit: '8mb' })
 
 const round2 = (n) => Math.round(n * 100) / 100
 
@@ -757,8 +766,39 @@ export function api() {
   })
 
   r.delete('/expenses/:id', async (req, res) => {
-    await (await getExpense(req.params.id)).deleteOne()
+    const expense = await getExpense(req.params.id)
+    await ExpenseReceipt.deleteOne({ expenseId: expense._id })
+    await expense.deleteOne()
     res.json({ ok: true })
+  })
+
+  // Attach a receipt to an expense, replacing the one already there. ?name= is the file's name.
+  r.put('/expenses/:id/receipt', receiptBody, async (req, res) => {
+    const expense = await getExpense(req.params.id)
+    const mime = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase()
+    if (!RECEIPT_TYPES.includes(mime)) fail(400, 'A receipt must be a JPG, PNG or WebP photo, or a PDF')
+    if (!Buffer.isBuffer(req.body) || !req.body.length) fail(400, 'The receipt file is empty')
+    await ExpenseReceipt.findOneAndUpdate({ expenseId: expense._id }, { mime, data: req.body }, { upsert: true })
+    expense.receiptName = str(req.query.name, 120) || 'receipt'
+    expense.receiptSize = req.body.length
+    await expense.save()
+    res.json(out(expense))
+  })
+
+  r.get('/expenses/:id/receipt', async (req, res) => {
+    const expense = await getExpense(req.params.id)
+    const receipt = (await ExpenseReceipt.findOne({ expenseId: expense._id }).lean()) || fail(404, 'This expense has no receipt')
+    // lean() hands the file back as a BSON Binary, not a Buffer.
+    res.type(receipt.mime).send(Buffer.isBuffer(receipt.data) ? receipt.data : receipt.data.buffer)
+  })
+
+  r.delete('/expenses/:id/receipt', async (req, res) => {
+    const expense = await getExpense(req.params.id)
+    await ExpenseReceipt.deleteOne({ expenseId: expense._id })
+    expense.receiptName = ''
+    expense.receiptSize = 0
+    await expense.save()
+    res.json(out(expense))
   })
 
   r.post('/expense-categories', async (req, res) => {
@@ -952,8 +992,8 @@ export function api() {
     const names = new Map(categories.map((c) => [String(c._id), c.name]))
     res.type('text/csv').send(
       toCsv(
-        ['Date', 'Category', 'Amount', 'Mode', 'Note'],
-        expenses.map((e) => [e.date, names.get(String(e.categoryId)) || 'Other', e.amount, e.mode, e.note]),
+        ['Date', 'Category', 'Amount', 'Mode', 'Note', 'Name', 'Paid to', 'Invoice no', 'Status', 'Receipt'],
+        expenses.map((e) => [e.date, names.get(String(e.categoryId)) || 'Other', e.amount, e.mode, e.note, e.name, e.paidTo, e.invoiceNo, e.status || 'paid', e.receiptName ? 'yes' : '']),
       ),
     )
   })

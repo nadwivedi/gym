@@ -51,36 +51,40 @@ export default function WhatsApp() {
         <h1>WhatsApp reminders</h1>
         <TopMenu />
       </header>
-      <div className="page">
+      <div className="page wa split">
         {!s ? (
           <Loading error={status.error} />
         ) : (
           <>
-            <Connection s={s} busy={action.busy} post={post} />
-            <ErrorBox error={action.error} />
-            <Rules s={s} reload={reload} />
-            <div className="section-title">Recent messages</div>
-            <div className="list">
-              {(log.data || []).map((r) => (
-                <div className="card" key={r.id}>
-                  <div className="row">
-                    <div className="row-main">
-                      <div className="row-title">{r.memberName || r.phone}</div>
-                      <div className="row-sub">
-                        {KIND[r.kind]} · {r.phone}
+            <div className="col">
+              <Connection s={s} busy={action.busy} post={post} />
+              <ErrorBox error={action.error} />
+              <Rules s={s} reload={reload} />
+            </div>
+            <div className="col">
+              <div className="section-title">Recent messages</div>
+              <div className="list">
+                {(log.data || []).map((r) => (
+                  <div className="card" key={r.id}>
+                    <div className="row">
+                      <div className="row-main">
+                        <div className="row-title">{r.memberName || r.phone}</div>
+                        <div className="row-sub">
+                          {KIND[r.kind]} · {r.phone}
+                        </div>
+                        <div className="row-sub">
+                          {fmtDate((r.sentAt || r.createdAt).slice(0, 10))}, {timeOf(r.sentAt || r.createdAt)}
+                        </div>
                       </div>
-                      <div className="row-sub">
-                        {fmtDate((r.sentAt || r.createdAt).slice(0, 10))}, {timeOf(r.sentAt || r.createdAt)}
+                      <div className="row-side">
+                        <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>
                       </div>
                     </div>
-                    <div className="row-side">
-                      <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>
-                    </div>
+                    {r.errorReason && r.status !== 'sent' && <p className="row-sub">{r.errorReason}</p>}
                   </div>
-                  {r.errorReason && r.status !== 'sent' && <p className="row-sub">{r.errorReason}</p>}
-                </div>
-              ))}
-              {log.data && !log.data.length && <div className="empty">No messages yet.</div>}
+                ))}
+                {log.data && !log.data.length && <div className="empty">No messages yet.</div>}
+              </div>
             </div>
           </>
         )}
