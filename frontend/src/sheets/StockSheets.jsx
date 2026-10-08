@@ -3,7 +3,7 @@ import { api, useAction } from '../api.js'
 import { DateInput, MoneyInput } from '../components/fields.jsx'
 import { ErrorBox, Field, Group, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
-import { fmtDate, money, moveTitle } from '../format.js'
+import { capTyped, capWords, fmtDate, money, moveTitle } from '../format.js'
 
 const count = (v) => Math.max(0, Math.floor(Number(v)) || 0)
 
@@ -35,7 +35,7 @@ export function ProductSheet({ product, categories, onClose, onDone }) {
   }
 
   const addType = () => {
-    const t = window.prompt('Name of the new product type (for example Pre-workout, Shakers, Gloves):', '')?.trim()
+    const t = capWords(window.prompt('Name of the new product type (for example Pre-workout, Shakers, Gloves):', '')?.trim() || '')
     if (!t) return
     setAdded((a) => [...a, t])
     setCategory(t)
@@ -45,7 +45,7 @@ export function ProductSheet({ product, categories, onClose, onDone }) {
     <Sheet title={product ? 'Edit product' : 'New product'} onClose={onClose}>
       <form className="form" onSubmit={save}>
         <Field label="Product name">
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required autoFocus={!product} placeholder="e.g. Whey Protein 1 kg, T-shirt (L)" />
+          <input value={name} onChange={(e) => setName(capTyped(e))} maxLength={60} required autoFocus={!product} placeholder="e.g. Whey Protein 1 kg, T-shirt (L)" />
         </Field>
         <Group label="Type">
           <div className="chips wrap">
@@ -180,7 +180,7 @@ export function MoveSheet({ type, product, products, onClose, onDone }) {
           </div>
           {selling && (
             <Field label="Sold to (optional)">
-              <input value={customer} onChange={(e) => setCustomer(e.target.value)} maxLength={60} placeholder="Member or customer name" />
+              <input value={customer} onChange={(e) => setCustomer(capTyped(e))} maxLength={60} placeholder="Member or customer name" />
             </Field>
           )}
           <Field label="Note (optional)">

@@ -5,7 +5,7 @@ import { MoneyInput } from '../components/fields.jsx'
 import { Badge, ErrorBox, Field, Group, Icon, Sheet } from '../components/ui.jsx'
 import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
-import { mobileDigits, money } from '../format.js'
+import { capTyped, mobileDigits, money } from '../format.js'
 import { getTheme, setTheme } from '../theme.js'
 
 const THEMES = [
@@ -130,7 +130,7 @@ function CategorySheet({ category, onClose, onSaved }) {
     <Sheet title={category ? `Edit ${category.name}` : 'New expense category'} onClose={onClose}>
       <form className="form" onSubmit={save}>
         <Field label="Category name">
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} placeholder="e.g. Rent" autoFocus={!category} />
+          <input value={name} onChange={(e) => setName(capTyped(e))} required maxLength={40} placeholder="e.g. Rent" autoFocus={!category} />
         </Field>
         {category && (
           <Group label="Use this category">
@@ -210,7 +210,7 @@ function PlanSheet({ plan, onClose, onSaved }) {
     <Sheet title={plan ? `Edit ${plan.name}` : 'New plan'} onClose={onClose}>
       <form className="form" onSubmit={save}>
         <Field label="Plan name">
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} placeholder="e.g. 3 Months" />
+          <input value={name} onChange={(e) => setName(capTyped(e))} required maxLength={60} placeholder="e.g. 3 Months" />
         </Field>
         <div className="field-row">
           <Field label="Months">
@@ -267,7 +267,7 @@ function Settings() {
   return (
     <form className="card form" onSubmit={save}>
       <Field label="Gym name">
-        <input value={gymName} onChange={(e) => setGymName(e.target.value)} required maxLength={60} />
+        <input value={gymName} onChange={(e) => setGymName(capTyped(e))} required maxLength={60} />
       </Field>
       <div className="field-row">
         <Field label="Default admission fee">

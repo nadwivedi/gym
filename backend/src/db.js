@@ -80,7 +80,8 @@ export const Plan = model(
 
 export const ExpenseCategory = model(
   'ExpenseCategory',
-  new Schema({ name: { type: String, required: true }, order: { type: Number, default: 0 }, active: { type: Boolean, default: true } }, opts),
+  // icon: one of EXPENSE_ICONS, or empty for the picture the page picks from the name.
+  new Schema({ name: { type: String, required: true }, icon: { type: String, default: '' }, order: { type: Number, default: 0 }, active: { type: Boolean, default: true } }, opts),
 )
 
 // Money the gym spends: rent, electricity, repairs and so on.
@@ -97,7 +98,9 @@ export const Expense = model(
       name: { type: String, default: '' },
       paidTo: { type: String, default: '' },
       invoiceNo: { type: String, default: '' },
-      // 'paid' or 'pending'. A label only: the totals count an expense either way.
+      // How much of it has been paid so far. Expenses from before this existed do not have it: routes.js reads their status instead.
+      paidAmount: { type: Number },
+      // 'pending' while part of it is unpaid, else 'paid'. The totals count an expense either way.
       status: { type: String, default: 'paid' },
       // Filled while a receipt file is kept in ExpenseReceipt.
       receiptName: { type: String, default: '' },

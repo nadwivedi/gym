@@ -39,6 +39,8 @@ const ICONS = {
   trash: 'M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6',
   alert: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
   bell: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a2 2 0 0 0 3.4 0',
+  bolt: 'M13 2 3 14h9l-1 8 10-12h-9z',
+  tool: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
   sun: 'M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
   idcard:'M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM11 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM5.5 16c.5-1.5 1.8-2.5 3.5-2.5s3 1 3.5 2.5M15 9h4M15 13h3',
@@ -116,7 +118,7 @@ export function Loading({ error }) {
   return error ? <ErrorBox error={error} /> : <div className="loading">Loading…</div>
 }
 
-export function Sheet({ title, onClose, closeOnBackdrop = true, children }) {
+export function Sheet({ title, onClose, closeOnBackdrop = true, className = '', children }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     const prev = document.body.style.overflow
@@ -129,7 +131,7 @@ export function Sheet({ title, onClose, closeOnBackdrop = true, children }) {
   }, [onClose])
   return (
     <div className="sheet-backdrop" onMouseDown={(e) => closeOnBackdrop && e.target === e.currentTarget && onClose()}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`sheet ${className}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="sheet-head">
           <h2>{title}</h2>
           <button className="btn small" onClick={onClose} aria-label="Close">

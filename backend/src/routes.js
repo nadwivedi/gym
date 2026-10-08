@@ -1,5 +1,5 @@
 import express from 'express'
-import { PAYMENT_MODES, addMonths, memberAge, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
+import { EXPENSE_ICONS, PAYMENT_MODES, addMonths, memberAge, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
 import { checkPassword, hashPassword, makeToken, newSecret, verifyToken } from './auth.js'
 import { toCsv } from './csv.js'
 import {
@@ -118,8 +118,12 @@ async function categoryNameOf(v, exceptId) {
   return name
 }
 
-// Fields of an expense that the request sets; every field is required when creating.
-async function expenseFields(b, creating) {
+// How much of an expense is paid. One saved before the paid amount existed is all or nothing, by its status.
+const expensePaid = (e) => e.paidAmount ?? (e.status === 'pending' ? 0 : e.amount)
+
+// Fields of an expense that the request sets; every field is required when creating. old: the expense being edited.
+async function expenseFields(b, old) {
+  const creating = !old
   const f = {}
   if (creating || b.amount !== undefined) {
     f.amount = moneyOf(b.amount, 'Amount')
@@ -135,7 +139,15 @@ async function expenseFields(b, creating) {
   if (b.name !== undefined) f.name = str(b.name, 80)
   if (b.paidTo !== undefined) f.paidTo = str(b.paidTo, 80)
   if (b.invoiceNo !== undefined) f.invoiceNo = str(b.invoiceNo, 40)
-  if (b.status !== undefined) f.status = b.status === 'pending' ? 'pending' : 'paid'
+  // The paid amount decides the status. A paid / pending label sent alone still means all or nothing.
+  const amount = f.amount ?? old.amount
+  if (b.paidAmount !== undefined) {
+    f.paidAmount = moneyOf(b.paidAmount, 'Paid amount')
+    if (f.paidAmount > amount) fail(400, 'Paid amount cannot be more than the amount')
+  } else if (b.status !== undefined) f.paidAmount = b.status === 'pending' ? 0 : amount
+  // Neither sent: an expense paid in full stays paid in full when its amount is fixed.
+  else f.paidAmount = creating || expensePaid(old) >= old.amount ? amount : Math.min(expensePaid(old), amount)
+  f.status = f.paidAmount < amount ? 'pending' : 'paid'
   return f
 }
 
@@ -737,9 +749,24 @@ export function api() {
   r.get('/expenses', async (req, res) => {
     const month = typeof req.query.month === 'string' && /^\d{4}-\d{2}$/.test(req.query.month) ? req.query.month : ''
     const from = dateOf(`${month}-01`, 'Month')
-    const [items, categories] = await Promise.all([
+    const today = todayStr()
+    // The unpaid part of each expense (the same reading as expensePaid above).
+    const unpaid = { $subtract: ['$amount', { $ifNull: ['$paidAmount', { $cond: [{ $eq: ['$status', 'pending'] }, 0, '$amount'] }] }] }
+    const [items, categories, [sums = {}]] = await Promise.all([
       Expense.find({ date: { $gte: from, $lt: addMonths(from, 1) } }).sort({ date: -1, createdAt: -1 }).lean(),
       loadCategories(),
+      // The tiles at the top of the page: these cover every month, not only the one asked for.
+      Expense.aggregate([
+        {
+          $group: {
+            _id: null,
+            allTime: { $sum: '$amount' },
+            today: { $sum: { $cond: [{ $eq: ['$date', today] }, '$amount', 0] } },
+            pendingTotal: { $sum: unpaid },
+            pendingCount: { $sum: { $cond: [{ $gt: [unpaid, 0] }, 1, 0] } },
+          },
+        },
+      ]),
     ])
     const names = new Map(categories.map((c) => [String(c._id), c.name]))
     const totals = new Map()
@@ -747,20 +774,26 @@ export function api() {
     const round = (n) => Math.round(n * 100) / 100
     res.json({
       month,
+      summary: {
+        allTime: round(sums.allTime || 0),
+        today: round(sums.today || 0),
+        pendingTotal: round(sums.pendingTotal || 0),
+        pendingCount: sums.pendingCount || 0,
+      },
       total: round(items.reduce((sum, e) => sum + e.amount, 0)),
       byCategory: [...totals].map(([id, total]) => ({ id, name: names.get(id) || 'Other', total: round(total) })).sort((a, b) => b.total - a.total),
-      items: items.map((e) => ({ ...out(e), category: names.get(String(e.categoryId)) || 'Other' })),
+      items: items.map((e) => ({ ...out(e), paidAmount: expensePaid(e), category: names.get(String(e.categoryId)) || 'Other' })),
     })
   })
 
   r.post('/expenses', async (req, res) => {
-    const expense = await Expense.create(await expenseFields(req.body || {}, true))
+    const expense = await Expense.create(await expenseFields(req.body || {}))
     res.status(201).json(out(expense))
   })
 
   r.patch('/expenses/:id', async (req, res) => {
     const expense = await getExpense(req.params.id)
-    expense.set(await expenseFields(req.body || {}, false))
+    expense.set(await expenseFields(req.body || {}, expense))
     await expense.save()
     res.json(out(expense))
   })
@@ -804,7 +837,8 @@ export function api() {
   r.post('/expense-categories', async (req, res) => {
     const name = await categoryNameOf(req.body?.name)
     const last = await ExpenseCategory.findOne().sort({ order: -1 }).lean()
-    const category = await ExpenseCategory.create({ name, order: (last?.order ?? -1) + 1 })
+    const icon = EXPENSE_ICONS.includes(req.body?.icon) ? req.body.icon : ''
+    const category = await ExpenseCategory.create({ name, icon, order: (last?.order ?? -1) + 1 })
     res.status(201).json(out(category))
   })
 
@@ -992,8 +1026,8 @@ export function api() {
     const names = new Map(categories.map((c) => [String(c._id), c.name]))
     res.type('text/csv').send(
       toCsv(
-        ['Date', 'Category', 'Amount', 'Mode', 'Note', 'Name', 'Paid to', 'Invoice no', 'Status', 'Receipt'],
-        expenses.map((e) => [e.date, names.get(String(e.categoryId)) || 'Other', e.amount, e.mode, e.note, e.name, e.paidTo, e.invoiceNo, e.status || 'paid', e.receiptName ? 'yes' : '']),
+        ['Date', 'Category', 'Amount', 'Paid', 'Mode', 'Note', 'Name', 'Paid to', 'Invoice no', 'Status', 'Receipt'],
+        expenses.map((e) => [e.date, names.get(String(e.categoryId)) || 'Other', e.amount, expensePaid(e), e.mode, e.note, e.name, e.paidTo, e.invoiceNo, e.status || 'paid', e.receiptName ? 'yes' : '']),
       ),
     )
   })

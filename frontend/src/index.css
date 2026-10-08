@@ -3383,14 +3383,263 @@ details.log ul {
   }
 }
 
+/* ---- Expenses page ---- */
+
+/* Add Expense, in the header: the one button on the page that should catch the eye, in both themes. */
+:root .topbar .btn.primary.ex-add {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border-color: transparent;
+  background: var(--grad-brand);
+  color: #fff;
+  font-size: 0.86rem;
+  box-shadow: var(--shadow-brand);
+}
+
+@media (hover: hover) {
+  .topbar .btn.ex-add:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+}
+
+/* On a phone the button says just "Add", so the title is not cut. */
+@media (max-width: 480px) {
+  .ex-add span {
+    display: none;
+  }
+}
+
+/* The smallest phones: a slightly smaller title, so "Expenses" fits beside the two buttons. */
+@media (max-width: 360px) {
+  :root:not([data-theme='dark']) .topbar:has(+ .ex) h1 {
+    font-size: 1.3rem;
+  }
+}
+
+/* The two small charts. A phone shows only the first: one is enough on a narrow screen. */
+.ex-over {
+  display: grid;
+  gap: 12px;
+}
+
+.ex-modes {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .ex-over {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .ex-over .card {
+    padding: 18px 20px;
+  }
+
+  .ex-modes {
+    display: block;
+  }
+}
+
+/* The month's expenses: one card, a title strip, then a row each. Tapping a row opens it to fix. */
+.ex-list {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ex-cols {
+  display: none;
+}
+
+.ex-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'ic name amt'
+    'ic meta status';
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: none;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.ex-cols + .ex-row {
+  border-top: none;
+}
+
+.ex-row:hover {
+  background: var(--surface-2);
+}
+
+/* The category's picture, in one of four soft colours. */
+.ex-ic {
+  grid-area: ic;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--warn);
+  background: var(--warn-soft);
+  box-shadow: inset 0 0 0 1px var(--warn-ring);
+}
+
+.ex-ic .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.ex-ic.t1 {
+  color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px var(--brand-ring);
+}
+
+.ex-ic.t2 {
+  color: var(--ok);
+  background: var(--ok-soft);
+  box-shadow: inset 0 0 0 1px var(--ok-ring);
+}
+
+.ex-ic.t3 {
+  color: var(--danger);
+  background: var(--danger-soft);
+  box-shadow: inset 0 0 0 1px var(--danger-ring);
+}
+
+.ex-name {
+  grid-area: name;
+  min-width: 0;
+}
+
+.ex-name b {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ex-name small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.ex-name small:empty {
+  display: none;
+}
+
+.ex-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.ex-mode::before {
+  content: '· ';
+}
+
+.ex-amt {
+  grid-area: amt;
+  justify-self: end;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ex-status {
+  grid-area: status;
+  justify-self: end;
+}
+
+/* Narrow: only an unpaid bill is flagged, and tapping the row is the way to edit it. */
+.ex-status .badge.ok,
+.ex-row .ex-act {
+  display: none;
+}
+
+/* A full-size laptop: a table, one line per expense under a row of column titles. */
+@media (min-width: 1340px) {
+  .ex-cols,
+  .ex-row {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 2fr) minmax(0, 1.1fr) 104px 92px 88px 108px 78px;
+    grid-template-areas: none;
+    align-items: center;
+    gap: 0 16px;
+    padding: 12px 20px;
+  }
+
+  .ex-cols {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted-2);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .ex-cols span:nth-child(7) {
+    text-align: right;
+  }
+
+  .ex-list .list-head {
+    padding: 12px 20px;
+  }
+
+  .ex-row > * {
+    grid-area: auto;
+  }
+
+  /* Category, date and method each take a column of their own. */
+  .ex-meta {
+    display: contents;
+  }
+
+  .ex-meta > span {
+    color: var(--text);
+    font-size: 0.86rem;
+  }
+
+  .ex-mode::before {
+    content: none;
+  }
+
+  .ex-status {
+    justify-self: start;
+  }
+
+  .ex-status .badge.ok {
+    display: inline-flex;
+  }
+
+  .ex-row .ex-act {
+    display: inline-flex;
+    justify-self: end;
+  }
+}
+
 /* ---- Expense form ---- */
 
-/* A field title with a small action at its right end ("+ New" category). */
+/* A field title with a small action right beside it ("+ New" category). */
 .field > .field-head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .field-head .link {
@@ -3538,10 +3787,6 @@ details.log ul {
     gap: 16px;
   }
 
-  .ex .filters {
-    justify-content: space-between;
-  }
-
   .ex .stepper.wide {
     flex: none;
     min-width: 300px;
@@ -3651,11 +3896,6 @@ details.log ul {
   .dash-sum .tri-box b {
     font-size: 1.3rem;
   }
-
-  /* Expenses: the month's total and categories on the left, the list on the right. */
-  .page.ex {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  }
 }
 
 /* Renewals on a full-size laptop: one line per member (who, the three facts, the buttons), lined up down the list. */
@@ -3690,4 +3930,63 @@ details.log ul {
     flex: none;
     padding: 0 12px;
   }
+}
+
+/* ---- Add New Category popup ---- */
+
+/* A small dialog over the expense form: centred on every screen, with the blue sweep on its header and button in both themes. */
+.sheet-backdrop:has(> .pop) {
+  align-items: center;
+  padding: 16px;
+}
+
+.sheet.pop {
+  max-width: 420px;
+  border-radius: 22px;
+}
+
+:root .sheet.pop .sheet-head,
+:root .sheet.pop .btn.primary {
+  background: var(--grad-brand);
+}
+
+:root .sheet.pop .btn.primary {
+  box-shadow: var(--shadow-brand);
+}
+
+.sheet.pop .sheet-body {
+  padding: 18px 16px;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.icon-pick {
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.icon-pick:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.icon-pick.active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.14);
 }

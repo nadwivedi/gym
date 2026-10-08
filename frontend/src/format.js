@@ -70,3 +70,18 @@ export function reminderText(s, gymName) {
   if (s.daysLeft < 0) return `Hi ${s.name}, your membership at ${gymName} expired on ${fmtDate(s.renewalDate)}. Please renew to continue.`
   return `Hi ${s.name}, your membership at ${gymName} is due for renewal on ${fmtDate(s.renewalDate)}.`
 }
+
+// "kashish dwivedi" -> "Kashish Dwivedi". Only the first letter of each word changes; the rest stays as typed.
+export const capWords = (v) => v.replace(/(^|\s)\p{Ll}/gu, (m) => m.toUpperCase())
+
+// For the onChange of a name box (member, gym, plan, product…): the typed text with every word capitalised.
+export function capTyped(e) {
+  const el = e.target
+  const next = capWords(el.value)
+  if (next !== el.value) {
+    // Rewriting the box sends the cursor to the end: put it back where the owner was typing.
+    const at = el.selectionStart
+    requestAnimationFrame(() => el.setSelectionRange(at, at))
+  }
+  return next
+}

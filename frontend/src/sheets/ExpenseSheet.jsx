@@ -3,7 +3,8 @@ import { api, download, upload, useAction } from '../api.js'
 import { DateInput, MoneyInput } from '../components/fields.jsx'
 import { ErrorBox, Field, Icon, Section, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
-import { money } from '../format.js'
+import { capTyped, money } from '../format.js'
+import NewCategorySheet from './NewCategorySheet.jsx'
 
 // What the server accepts as a receipt (routes.js): a photo or a PDF, up to 8 MB.
 const RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
@@ -18,9 +19,8 @@ export default function ExpenseSheet({ expense, onClose, onDone }) {
   const [categoryId, setCategoryId] = useState(expense?.categoryId || '')
   const [date, setDate] = useState(expense?.date || today)
   const [mode, setMode] = useState(expense?.mode || 'Cash')
-  const [status, setStatus] = useState(expense?.status || 'paid')
-  const [paidTo, setPaidTo] = useState(expense?.paidTo || '')
-  const [invoiceNo, setInvoiceNo] = useState(expense?.invoiceNo || '')
+  // null: nothing typed, so the paid amount follows the amount (most bills are paid in full). A part-paid expense opens with its own figure.
+  const [paidTyped, setPaidTyped] = useState(expense && expense.paidAmount < expense.amount ? String(expense.paidAmount) : null)
   const [note, setNote] = useState(expense?.note || '')
   // The receipt already saved (its name and size), and a new file picked now. Nothing is sent until Save.
   const [kept, setKept] = useState(expense?.receiptName ? { name: expense.receiptName, size: expense.receiptSize } : null)
@@ -30,11 +30,17 @@ export default function ExpenseSheet({ expense, onClose, onDone }) {
   const [savedId, setSavedId] = useState(expense?.id || null)
   const { busy, error, run } = useAction()
   // A switched-off category is still shown on the expense that already uses it.
-  const categories = expenseCategories.filter((c) => c.active || c.id === categoryId)
+  // One added from this form is in the list at once, before the app has loaded it again.
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [created, setCreated] = useState([])
+  const categories = [...expenseCategories, ...created.filter((c) => !expenseCategories.some((x) => x.id === c.id))].filter((c) => c.active || c.id === categoryId)
+  const total = Number(amount) || 0
+  const paid = paidTyped ?? amount
+  const pending = total - (Number(paid) || 0)
 
   const save = async (e) => {
     e.preventDefault()
-    const body = { name, amount: Number(amount), categoryId, date, mode, status, paidTo, invoiceNo, note }
+    const body = { name, amount: total, paidAmount: Number(paid) || 0, categoryId, date, mode, note }
     const saved = await run(async () => {
       const row = savedId ? await api(`/expenses/${savedId}`, { method: 'PATCH', body }) : await api('/expenses', { method: 'POST', body })
       setSavedId(row.id)
@@ -50,13 +56,11 @@ export default function ExpenseSheet({ expense, onClose, onDone }) {
     if (await run(() => api(`/expenses/${expense.id}`, { method: 'DELETE' }))) onDone()
   }
 
-  const addCategory = async () => {
-    const name = window.prompt('Name of the new expense category:', '')
-    if (!name?.trim()) return
-    const created = await run(() => api('/expense-categories', { method: 'POST', body: { name } }))
-    if (!created) return
+  const categoryAdded = (category) => {
+    setAddingCategory(false)
+    setCreated((list) => [...list, category])
+    setCategoryId(category.id)
     reloadApp()
-    setCategoryId(created.id)
   }
 
   const pick = (e) => {
@@ -81,14 +85,20 @@ export default function ExpenseSheet({ expense, onClose, onDone }) {
     <Sheet title={expense ? 'Edit Expense' : 'Add Expense'} onClose={close}>
       <form className="form" onSubmit={save}>
         <Section num="1" title="Expense">
-          <Field label="Expense name">
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required={!expense} autoFocus={!expense} placeholder="e.g. October electricity bill" />
-          </Field>
+          {/* A new expense has no name. One saved with a name earlier keeps the box, so the name can still be fixed or cleared. */}
+          {expense?.name && (
+            <Field label="Expense name">
+              <input value={name} onChange={(e) => setName(capTyped(e))} maxLength={80} />
+            </Field>
+          )}
           <div className="field-row">
+            <Field label="Expense date">
+              <DateInput value={date} onChange={setDate} max={today} required />
+            </Field>
             <div className="field">
               <span className="field-head">
                 Category
-                <button type="button" className="link" disabled={busy} onClick={addCategory}>
+                <button type="button" className="link" disabled={busy} onClick={() => setAddingCategory(true)}>
                   + New
                 </button>
               </span>
@@ -103,47 +113,39 @@ export default function ExpenseSheet({ expense, onClose, onDone }) {
                 ))}
               </select>
             </div>
-            <Field label="Amount">
-              <MoneyInput value={amount} onChange={setAmount} required placeholder="0" />
-            </Field>
           </div>
         </Section>
 
         <Section num="2" title="Payment">
           <div className="field-row">
-            <Field label="Expense date">
-              <DateInput value={date} onChange={setDate} max={today} required />
+            <Field label="Amount">
+              <MoneyInput value={amount} onChange={setAmount} required placeholder="0" />
             </Field>
-            <Field label="Payment method">
-              <select value={mode} onChange={(e) => setMode(e.target.value)}>
-                {modes.map((m) => (
-                  <option key={m}>{m}</option>
-                ))}
-              </select>
+            <Field label="Paid amount">
+              <MoneyInput value={paid} onChange={setPaidTyped} placeholder="0" />
             </Field>
           </div>
-          <div className="field-row">
-            <Field label="Payment status">
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-              </select>
-            </Field>
-            <Field label="Paid to / vendor">
-              <input value={paidTo} onChange={(e) => setPaidTo(e.target.value)} maxLength={80} placeholder="Who was paid" />
-            </Field>
-          </div>
-          <Field label="Invoice / receipt number">
-            <input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} maxLength={40} placeholder="Optional" />
+          {pending < 0 ? (
+            <div className="box error">The paid amount is more than the amount of {money(total)}.</div>
+          ) : (
+            <div className={`box ${pending > 0 ? 'warn' : 'info'}`}>
+              Pending amount: <b>{money(pending)}</b>
+            </div>
+          )}
+          <Field label="Payment method">
+            <select value={mode} onChange={(e) => setMode(e.target.value)}>
+              {modes.map((m) => (
+                <option key={m}>{m}</option>
+              ))}
+            </select>
           </Field>
         </Section>
 
-        <Section num="3" title="Notes and receipt">
+        <Section num="3" title="Notes">
           <Field label="Description / notes">
             <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={2} placeholder="Optional" />
           </Field>
           <div className="field">
-            <span>Receipt</span>
             {receipt ? (
               <div className="upload has">
                 <span className="upload-icon">
@@ -184,7 +186,7 @@ export default function ExpenseSheet({ expense, onClose, onDone }) {
           <button type="button" className="btn" disabled={busy} onClick={close}>
             Cancel
           </button>
-          <button className="btn primary" disabled={busy || !(Number(amount) > 0) || !categoryId}>
+          <button className="btn primary" disabled={busy || !(total > 0) || pending < 0 || !categoryId}>
             {busy ? 'Saving…' : expense ? 'Save changes' : 'Add Expense'}
           </button>
         </div>
@@ -194,6 +196,7 @@ export default function ExpenseSheet({ expense, onClose, onDone }) {
           </button>
         )}
       </form>
+      {addingCategory && <NewCategorySheet onClose={() => setAddingCategory(false)} onAdded={categoryAdded} />}
     </Sheet>
   )
 }

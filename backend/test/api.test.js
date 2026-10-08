@@ -392,18 +392,24 @@ test('expenses: default categories, add, edit, delete, and the dashboard profit'
   const cat = (name) => boot.expenseCategories.find((c) => c.name === name).id
 
   // A new category; the same name again (any letter case) is refused.
-  const rent = await ok('POST', '/expense-categories', { name: 'Rent' })
+  const rent = await ok('POST', '/expense-categories', { name: 'Rent', icon: 'building' })
+  // The picture is optional: the standard categories have none.
+  assert.deepEqual([rent.icon, boot.expenseCategories[0].icon], ['building', ''])
   assert.equal((await call('POST', '/expense-categories', { name: 'rent' })).status, 409)
   assert.equal((await call('POST', '/expense-categories', { name: ' ' })).status, 400)
   assert.equal((await ok('GET', '/bootstrap')).expenseCategories.at(-1).name, 'Rent')
 
   const before = await ok('GET', '/stats')
+  const sumBefore = (await ok('GET', `/expenses?month=${today.slice(0, 7)}`)).summary
   const e1 = await ok('POST', '/expenses', { amount: 1500, date: today, categoryId: cat('Electricity'), mode: 'UPI', note: 'October bill' })
   await ok('POST', '/expenses', { amount: 8000, date: today, categoryId: rent.id })
   const e3 = await ok('POST', '/expenses', { amount: 250, date: today, categoryId: cat('Cleaning') })
 
   let list = await ok('GET', `/expenses?month=${today.slice(0, 7)}`)
   assert.equal(list.total, 9750)
+  // The page's tiles: every month together, and today alone. Another month's list carries the same figures.
+  assert.deepEqual([list.summary.allTime - sumBefore.allTime, list.summary.today - sumBefore.today], [9750, 9750])
+  assert.deepEqual((await ok('GET', '/expenses?month=2020-01')).summary, list.summary)
   assert.deepEqual(
     list.byCategory.map((c) => [c.name, c.total]),
     [['Rent', 8000], ['Electricity', 1500], ['Cleaning', 250]],
@@ -449,6 +455,8 @@ test('expenses: bill details and the receipt file', async () => {
   const categoryId = boot.expenseCategories[0].id
   const month = today.slice(0, 7)
   const before = await ok('GET', '/stats')
+  const unpaid = async () => (await ok('GET', `/expenses?month=${month}`)).summary
+  const unpaidBefore = await unpaid()
 
   // The details are optional; an unknown status is saved as paid.
   const plain = await ok('POST', '/expenses', { amount: 100, date: today, categoryId })
@@ -458,7 +466,27 @@ test('expenses: bill details and the receipt file', async () => {
   assert.deepEqual([bill.name, bill.paidTo, bill.invoiceNo, bill.status], ['October power bill', 'City Power', 'INV-88', 'pending'])
   // A pending expense still counts in the month.
   assert.equal((await ok('GET', '/stats')).total.expense - before.total.expense, 4400)
+  // ...and is counted among the unpaid bills until it is marked paid.
+  let sum = await unpaid()
+  assert.deepEqual([sum.pendingCount - unpaidBefore.pendingCount, sum.pendingTotal - unpaidBefore.pendingTotal], [1, 4200])
   const edited = await ok('PATCH', `/expenses/${bill.id}`, { status: 'paid', paidTo: 'City Power Ltd' })
+  sum = await unpaid()
+  assert.deepEqual([sum.pendingCount, sum.pendingTotal], [unpaidBefore.pendingCount, unpaidBefore.pendingTotal])
+
+  // Part payment: what is left is pending, and paying the rest clears it. More than the amount is refused.
+  const part = await ok('POST', '/expenses', { amount: 900, paidAmount: 600, date: today, categoryId })
+  assert.deepEqual([part.paidAmount, part.status], [600, 'pending'])
+  sum = await unpaid()
+  assert.deepEqual([sum.pendingCount - unpaidBefore.pendingCount, sum.pendingTotal - unpaidBefore.pendingTotal], [1, 300])
+  assert.equal((await ok('GET', `/expenses?month=${month}`)).items.find((e) => e.id === part.id).paidAmount, 600)
+  assert.equal((await call('PATCH', `/expenses/${part.id}`, { paidAmount: 901 })).status, 400)
+  assert.equal((await call('POST', '/expenses', { amount: 100, paidAmount: 101, date: today, categoryId })).status, 400)
+  // Fixing only the amount keeps what was paid; an expense paid in full stays paid in full.
+  assert.deepEqual(await ok('PATCH', `/expenses/${part.id}`, { amount: 1000 }).then((e) => [e.paidAmount, e.status]), [600, 'pending'])
+  assert.deepEqual(await ok('PATCH', `/expenses/${part.id}`, { paidAmount: 1000 }).then((e) => [e.paidAmount, e.status]), [1000, 'paid'])
+  assert.deepEqual(await ok('PATCH', `/expenses/${part.id}`, { amount: 1200 }).then((e) => [e.paidAmount, e.status]), [1200, 'paid'])
+  assert.deepEqual([plain.paidAmount, bill.paidAmount, edited.paidAmount], [100, 0, 4200])
+  await ok('DELETE', `/expenses/${part.id}`)
   assert.deepEqual([edited.status, edited.paidTo, edited.name], ['paid', 'City Power Ltd', 'October power bill'])
   assert.match(await ok('GET', '/export/expenses.csv'), /Meter 2,October power bill,City Power Ltd,INV-88,paid,\r\n/)
 

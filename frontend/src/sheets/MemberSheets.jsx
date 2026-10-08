@@ -4,7 +4,7 @@ import { api, saveWithDuplicateCheck, useAction } from '../api.js'
 import { DateInput, PersonalFields, PhoneInput } from '../components/fields.jsx'
 import { ErrorBox, Field, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
-import { personalBody } from '../format.js'
+import { capTyped, personalBody } from '../format.js'
 
 const HIDE_REASONS = ['Not coming', 'Joined another gym', 'Moved away', 'Health / injury', 'Will join later']
 
@@ -72,7 +72,7 @@ export function EditMemberSheet({ member, onClose, onDone, onDeleted }) {
     <Sheet title="Edit member" onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <Field label="Name">
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} />
+          <input value={name} onChange={(e) => setName(capTyped(e))} required maxLength={80} />
         </Field>
         <Field label="Phone">
           <PhoneInput value={phone} onChange={setPhone} />

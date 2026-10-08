@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useLoad } from '../api.js'
 import { Icon, Loading, MemberRow } from '../components/ui.jsx'
 import TopMenu from '../components/TopMenu.jsx'
@@ -18,7 +19,12 @@ const FILTERS = [
 
 export default function Members() {
   const { openAdd } = useApp()
-  const { data, error } = useLoad('/members')
+  const { data, error, reload } = useLoad('/members')
+  // A new admission lands back here (AddMemberSheet): the list on screen is from before it, so load it again.
+  const added = useLocation().state?.added
+  useEffect(() => {
+    if (added) reload()
+  }, [added, reload])
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
 

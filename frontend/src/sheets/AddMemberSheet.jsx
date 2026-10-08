@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { addMonths } from '../../../shared/domain.mjs'
 import { api, saveWithDuplicateCheck, useAction } from '../api.js'
 import { DateInput, MoneyInput, PayNowFields, PersonalFields, PhoneInput, PlanPicker } from '../components/fields.jsx'
 import { ErrorBox, Field, Group, Section, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
-import { fmtDate, payNowBody, personalBody, promisedBody } from '../format.js'
+import { capTyped, fmtDate, payNowBody, personalBody, promisedBody } from '../format.js'
 
 // Typing into a fee that still shows the default 0 replaces it: 0 then "5" gives 5, not 05 or 50.
 const overZero = (prev, set) => (v) => set(prev === '0' && /^\d\d$/.test(v) ? v.replace('0', '') : v)
@@ -25,6 +25,7 @@ export default function AddMemberSheet({ onClose }) {
   const [admissionFee, setAdmissionFee] = useState(String(settings.admissionFee))
   const [pay, setPay] = useState({ amount: '', date: today, mode: 'Cash', promisedDate: '' })
   const { busy, error, run } = useAction()
+  const admissionFeeRef = useRef(null)
 
   const total = (Number(fee) || 0) + (Number(admissionFee) || 0)
   const renewalDate = plan && startDate ? addMonths(startDate, plan.months) : ''
@@ -56,7 +57,8 @@ export default function AddMemberSheet({ onClose }) {
     )
     if (!saved) return
     onClose()
-    navigate(`/members/${saved.member.id}`)
+    // Back to the list. The form is opened from that page, so the state tells it to load the new member.
+    navigate('/members', { state: { added: saved.member.id } })
   }
 
   return (
@@ -65,7 +67,7 @@ export default function AddMemberSheet({ onClose }) {
       <form className="form" onSubmit={submit}>
         <Section num="1" title="Member">
           <Field label="Member name">
-            <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} autoComplete="off" autoFocus />
+            <input value={name} onChange={(e) => setName(capTyped(e))} required maxLength={80} autoComplete="off" autoFocus />
           </Field>
           <div className="field-row">
             <Field label="Phone">
@@ -114,10 +116,20 @@ export default function AddMemberSheet({ onClose }) {
           )}
           <div className="field-row">
             <Field label="Plan fee">
-              <MoneyInput value={fee} onChange={overZero(fee, setFee)} required />
+              <MoneyInput
+                value={fee}
+                onChange={overZero(fee, setFee)}
+                required
+                // Enter moves on to the admission fee instead of sending the half-filled form.
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return
+                  e.preventDefault()
+                  admissionFeeRef.current.focus()
+                }}
+              />
             </Field>
             <Field label="Admission fee">
-              <MoneyInput value={admissionFee} onChange={overZero(admissionFee, setAdmissionFee)} />
+              <MoneyInput ref={admissionFeeRef} value={admissionFee} onChange={overZero(admissionFee, setAdmissionFee)} />
             </Field>
           </div>
         </Section>

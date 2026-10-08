@@ -1,6 +1,6 @@
 import { yearsBetween } from '../../../shared/domain.mjs'
 import { useApp } from '../context.js'
-import { money } from '../format.js'
+import { capTyped, money } from '../format.js'
 import { Field } from './ui.jsx'
 
 export function MoneyInput({ value, onChange, ...rest }) {
@@ -36,7 +36,7 @@ export function PersonalFields({ value, onChange }) {
   return (
     <>
       <Field label="Full address">
-        <textarea value={value.address} onChange={(e) => set({ address: e.target.value })} maxLength={300} rows={2} />
+        <textarea value={value.address} onChange={(e) => set({ address: capTyped(e) })} maxLength={300} rows={2} />
       </Field>
       <div className="field-row">
         <Field label="Date of birth">

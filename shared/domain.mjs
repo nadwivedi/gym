@@ -3,6 +3,9 @@
 
 export const PAYMENT_MODES = ['Cash', 'UPI', 'Card', 'Bank']
 
+// The pictures an expense category can be given: names of icons in the frontend (components/ui.jsx).
+export const EXPENSE_ICONS = ['receipt', 'bolt', 'building', 'users', 'tool', 'dumbbell', 'box', 'phone']
+
 const pad = (n) => String(n).padStart(2, '0')
 const toUTC = (s) => {
   const [y, m, d] = s.split('-').map(Number)
