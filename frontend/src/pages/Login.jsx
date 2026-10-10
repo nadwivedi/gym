@@ -38,7 +38,6 @@ export default function Login({ onDone }) {
   const [tab, setTab] = useState('login')
   const [forgot, setForgot] = useState(false)
   const [sentFrom, setSentFrom] = useState(null) // the form whose error is showing, so switching tabs hides it
-  const [signedUp, setSignedUp] = useState(false) // shows "Account created" above the login form
   const { busy, error, run } = useAction()
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -56,7 +55,6 @@ export default function Login({ onDone }) {
     setTab(next)
     setForgot(false)
     setSentFrom(null)
-    setSignedUp(false)
   }
 
   // The backend tells a mobile number from an email by what was typed.
@@ -69,7 +67,7 @@ export default function Login({ onDone }) {
     onDone()
   }
 
-  // A new account: then back to the Login tab, with the new email filled in, to log in with it.
+  // A new account is logged in straight away and opens on its dashboard.
   const signup = async (e) => {
     e.preventDefault()
     setSentFrom('signup')
@@ -78,11 +76,8 @@ export default function Login({ onDone }) {
       confirm === body.password ? api('/auth/signup', { method: 'POST', body }) : Promise.reject(new Error('The two passwords do not match')),
     )
     if (!res) return
-    setLoginName(form.email.trim())
-    setForm((f) => ({ ...f, password: '', confirm: '' }))
-    setTab('login')
-    setSentFrom(null)
-    setSignedUp(true)
+    setToken(res.token)
+    onDone('/dashboard')
   }
 
   let body
@@ -154,7 +149,6 @@ export default function Login({ onDone }) {
   } else {
     body = (
       <form key="login" className="auth-form" onSubmit={login}>
-        {signedUp && <div className="box info">Account created. Log in with your email or mobile number and password.</div>}
         <Input
           icon="phone"
           placeholder="Mobile number or email"
@@ -162,11 +156,11 @@ export default function Login({ onDone }) {
           autoCapitalize="none"
           spellCheck={false}
           maxLength={254}
-          autoFocus={!signedUp}
+          autoFocus
           value={loginName}
           onChange={(e) => setLoginName(e.target.value)}
         />
-        <PasswordInput placeholder="Password" autoComplete="current-password" autoFocus={signedUp} value={form.password} onChange={set('password')} />
+        <PasswordInput placeholder="Password" autoComplete="current-password" value={form.password} onChange={set('password')} />
         <ErrorBox error={sentFrom === 'login' ? error : null} />
         <div className="auth-row-end">
           <button type="button" className="auth-link" onClick={() => setForgot(true)}>

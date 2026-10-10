@@ -64,10 +64,19 @@ function ToLogin() {
   return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
 }
 
+// onDone(to): logged in; `to` is where to go, else back to the page that asked for the login, else HOME.
 function LoginRoute({ authed, onDone }) {
   const location = useLocation()
-  if (authed) return <Navigate to={location.state?.from || HOME} replace />
-  return <Login onDone={onDone} />
+  const [to, setTo] = useState(null)
+  if (authed) return <Navigate to={to || location.state?.from || HOME} replace />
+  return (
+    <Login
+      onDone={(next) => {
+        setTo(next || null)
+        onDone()
+      }}
+    />
+  )
 }
 
 function Shell({ onLogout }) {
