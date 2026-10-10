@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import mongoose from 'mongoose'
 import { addDays, addMonths, todayStr } from '../../shared/domain.mjs'
-import { Account } from '../src/accounts.js'
+import { Account } from '../src/models/index.js'
 import { createApp } from '../src/app.js'
 
 const TEST_DB = process.env.MONGO_TEST_URL || 'mongodb://127.0.0.1:27017/gymsoft_test'

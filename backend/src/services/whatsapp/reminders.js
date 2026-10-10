@@ -1,12 +1,10 @@
-import { todayStr } from '../../../shared/domain.mjs'
-import { getSettings } from '../db.js'
-import { loadSummaries } from '../service.js'
+import { todayStr } from '../../../../shared/domain.mjs'
+import { Account, Reminder, accountRef, getSettings } from '../../models/index.js'
+import { loadSummaries } from '../memberService.js'
 import { config } from './config.js'
 import { WaRecipientError, WaUnavailableError } from './errors.js'
-import { Account, accountRef } from '../accounts.js'
-import { currentAccount, runAs } from '../tenant.js'
+import { currentAccount, runAs } from '../../utils/tenant.js'
 import { log, setReadyHook, waFor } from './index.js'
-import { Reminder } from './models.js'
 
 // The one reminder text, used for both messages. It is fixed on purpose: the owner does not edit it.
 export const MESSAGE = 'Hi {name}, your membership at {gym} ended on {date}. Please renew to continue your workouts. Thank you!'

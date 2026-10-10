@@ -1,6 +1,7 @@
-import { memberState, periodMoney, periodState } from '../../shared/domain.mjs'
-import { Member, Payment, Period, out } from './db.js'
-import { fail } from './validate.js'
+import { addMonths, memberState, overlaps, periodMoney, periodState } from '../../../shared/domain.mjs'
+import { Member, Payment, Period, Plan } from '../models/index.js'
+import { out } from '../utils/helpers.js'
+import { dateOf, fail, idOf, intOf, modeOf, moneyOf, paidDateOf, str } from '../utils/validate.js'
 
 function groupBy(list, key) {
   const map = new Map()
@@ -82,4 +83,47 @@ export async function moneyFor(period, excludePaymentId) {
     period,
     pays.filter((p) => String(p._id) !== String(excludePaymentId)),
   )
+}
+
+export async function getMember(id) {
+  return (await Member.findById(idOf(id))) || fail(404, 'Member not found')
+}
+
+export async function getPeriod(id) {
+  return (await Period.findById(idOf(id))) || fail(404, 'Membership not found')
+}
+
+// Validates an admission / renewal and returns the fields to store.
+export async function buildPeriod(body, existing, kind) {
+  if (!body || typeof body !== 'object') fail(400, 'Membership details are missing')
+  const plan = body.planId ? await Plan.findById(idOf(body.planId)).lean() : null
+  if (body.planId && !plan) fail(400, 'Plan not found')
+  const months = intOf(body.months ?? plan?.months, 'Months', 1, 60)
+  const startDate = dateOf(body.startDate, 'Start date')
+  const renewalDate = body.renewalDate ? dateOf(body.renewalDate, 'Renewal date') : addMonths(startDate, months)
+  if (renewalDate <= startDate) fail(400, 'Renewal date must be after the start date')
+  if (overlaps(existing, startDate, renewalDate)) {
+    fail(409, 'These dates overlap a membership this member already has', { code: 'OVERLAP' })
+  }
+  return {
+    planId: plan?._id,
+    planName: plan?.name || `${months} month`,
+    months,
+    startDate,
+    renewalDate,
+    planPrice: plan?.price ?? 0,
+    fee: moneyOf(body.fee ?? plan?.price ?? 0, 'Fee'),
+    admissionFee: moneyOf(body.admissionFee ?? 0, 'Admission fee'),
+    promisedDate: body.promisedDate ? dateOf(body.promisedDate, 'Promised date') : '',
+    note: str(body.note, 500),
+    kind,
+  }
+}
+
+// Optional first payment taken together with an admission / renewal.
+export function buildPayment(body, total) {
+  if (!body || body.amount === '' || body.amount == null || Number(body.amount) === 0) return null
+  const amount = moneyOf(body.amount, 'Payment amount')
+  if (amount > total) fail(400, 'Payment is more than the total fee')
+  return { type: 'payment', amount, date: paidDateOf(body.date, 'Payment date'), mode: modeOf(body.mode), note: str(body.note, 300) }
 }

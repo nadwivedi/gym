@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import { tenantModel } from '../tenant.js'
+import { tenantModel } from '../utils/tenant.js'
 
 const { Schema } = mongoose
 

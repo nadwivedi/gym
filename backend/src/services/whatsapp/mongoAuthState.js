@@ -1,7 +1,7 @@
 // MongoDB-backed Baileys auth state (the docs advise against useMultiFileAuthState in production).
 // Same logic as Baileys' useMultiFileAuthState, with one document per file.
-import { runAs } from '../tenant.js'
-import { WaAuthKey, WaSentMessage } from './models.js'
+import { runAs } from '../../utils/tenant.js'
+import { WaAuthKey, WaSentMessage } from '../../models/index.js'
 
 // Runs fn in the gym the login belongs to: Baileys calls these from socket events, outside any request.
 const inGym = (account, fn) => (account ? runAs(account, fn) : fn())

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { buildYearStats } from '../src/stats.js'
+import { buildYearStats } from '../src/services/statsService.js'
 
 const pay = (date, amount, mode = 'Cash', type = 'payment') => ({ date, amount, mode, type })
 const period = (memberId, startDate, renewalDate, kind = 'admission') => ({ memberId, startDate, renewalDate, kind })

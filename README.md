@@ -28,20 +28,26 @@ npm --prefix frontend run build     # build the screens; `npm --prefix backend s
 
 - `shared/domain.mjs`: date, renewal and balance rules used by both sides
 - `backend/src`: Express API on MongoDB (`gymsoft` database; override with `MONGO_URL`, `PORT`)
+  - `routes/`: which URL goes to which controller (`routes/index.js` lists them all)
+  - `controllers/`: what each API call does
+  - `models/`: the MongoDB collections, one file each
+  - `services/`: logic shared by several controllers, and the WhatsApp reminders (`services/whatsapp`)
+  - `middleware/`: CORS, login check, error responses
+  - `utils/`: input checks, passwords and tokens, CSV, per-gym databases (`tenant.js`)
 - `frontend/src`: React screens (`pages/`) and bottom-sheet forms (`sheets/`)
 - `frontend/src/site`: public GymSolution website (`/` home, `/features`); every app page (`/dashboard`, `/members`, …) needs the login at `/login`
 
 ## WhatsApp reminders
 
-`backend/src/whatsapp` sends renewal reminders through Baileys (no browser). Link the gym's number once under **Settings → WhatsApp reminders**.
+`backend/src/services/whatsapp` sends renewal reminders through Baileys (no browser). Link the gym's number once under **Settings → WhatsApp reminders**.
 
 - Two messages per member and renewal date, never more: on the renewal date and 2 days after, only if not renewed and not hidden.
 - On demand: the server connects only when a reminder is pending and disconnects after 60 seconds idle. The login is stored in MongoDB.
-- Sent between 8:00 and 21:00, at most 10 an hour and 40 a day, a few seconds apart. Change with `WHATSAPP_*` environment variables (see `whatsapp/config.js`).
+- Sent between 8:00 and 21:00, at most 10 an hour and 40 a day, a few seconds apart. Change with `WHATSAPP_*` environment variables (see `services/whatsapp/config.js`).
 
 ## Accounts
 
-- Every gym owner signs up with name, gym name, email and password. Accounts are kept in the `MONGO_URL` database; each account's gym data lives in its own database next to it (`<database>_<account id>`), so one gym can never see another's members, payments or WhatsApp number (`backend/src/tenant.js`).
+- Every gym owner signs up with name, gym name, email and password. Accounts are kept in the `MONGO_URL` database; each account's gym data lives in its own database next to it (`<database>_<account id>`), so one gym can never see another's members, payments or WhatsApp number (`backend/src/utils/tenant.js`).
 - A gym from the one-gym version (owner login with a mobile number) becomes the first account on the first start, with its data left where it is. Log in with the same mobile number and password, then add an email under **More → Login details**.
 - Each account links its own WhatsApp number; the reminder job sends each gym's reminders from its own number.
 

@@ -1,7 +1,7 @@
-import { runAs } from '../tenant.js'
+import { runAs } from '../../utils/tenant.js'
 import { BaileysClient } from './baileysClient.js'
 import { config } from './config.js'
-import { WaState } from './models.js'
+import { WaState } from '../../models/index.js'
 import { profile } from './mongoAuthState.js'
 import { WhatsAppSession } from './session.js'
 

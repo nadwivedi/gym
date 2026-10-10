@@ -2,8 +2,8 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { test } from 'node:test'
-import { WaRecipientError, WaUnavailableError } from '../src/whatsapp/errors.js'
-import { STATE, WhatsAppSession } from '../src/whatsapp/session.js'
+import { WaRecipientError, WaUnavailableError } from '../src/services/whatsapp/errors.js'
+import { STATE, WhatsAppSession } from '../src/services/whatsapp/session.js'
 
 const tick = (ms = 5) => new Promise((r) => setTimeout(r, ms))
 async function until(fn, ms = 2000) {

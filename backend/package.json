@@ -8,7 +8,7 @@
     "start": "node --env-file-if-exists=.env server.js",
     "dev": "node --env-file-if-exists=.env --watch server.js",
     "test": "node --env-file-if-exists=.env --test --test-concurrency=1 \"test/*.test.js\"",
-    "reset-login": "node --env-file-if-exists=.env src/resetLogin.js"
+    "reset-login": "node --env-file-if-exists=.env src/scripts/resetLogin.js"
   },
   "keywords": [],
   "author": "",

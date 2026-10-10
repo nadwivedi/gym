@@ -1,4 +1,4 @@
-import { addDays, addMonths } from '../../shared/domain.mjs'
+import { addDays, addMonths } from '../../../shared/domain.mjs'
 
 const round2 = (n) => Math.round(n * 100) / 100
 // Expense category name used for stock purchases in the dashboard breakdown.

@@ -2,10 +2,10 @@
 //   npm run reset-login -- owner@example.com newpassword
 // (an account adopted from the one-gym version can be named by its mobile number instead of an email).
 // Every device of that account is signed out. No gym data is changed.
-import './env.js'
+import '../config/env.js'
 import mongoose from 'mongoose'
-import { Account } from './accounts.js'
-import { hashPassword, newSecret } from './auth.js'
+import { Account } from '../models/index.js'
+import { hashPassword, newSecret } from '../utils/auth.js'
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/gymsoft'
 const [login = '', password = ''] = process.argv.slice(2)
