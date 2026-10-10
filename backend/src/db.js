@@ -1,11 +1,12 @@
 import crypto from 'node:crypto'
 import mongoose from 'mongoose'
+import { tenantModel } from './tenant.js'
 
-const { Schema, model } = mongoose
+const { Schema } = mongoose
 const opts = { versionKey: false, timestamps: { createdAt: true, updatedAt: false } }
 const history = [{ _id: false, at: String, text: String }]
 
-export const Member = model(
+export const Member = tenantModel(
   'Member',
   new Schema(
     {
@@ -30,7 +31,7 @@ export const Member = model(
 )
 
 // One row per admission / renewal. Covers startDate up to (not including) renewalDate.
-export const Period = model(
+export const Period = tenantModel(
   'Period',
   new Schema(
     {
@@ -54,7 +55,7 @@ export const Period = model(
   ),
 )
 
-export const Payment = model(
+export const Payment = tenantModel(
   'Payment',
   new Schema(
     {
@@ -73,19 +74,19 @@ export const Payment = model(
   ),
 )
 
-export const Plan = model(
+export const Plan = tenantModel(
   'Plan',
   new Schema({ name: String, months: Number, price: { type: Number, default: 0 }, active: { type: Boolean, default: true } }, opts),
 )
 
-export const ExpenseCategory = model(
+export const ExpenseCategory = tenantModel(
   'ExpenseCategory',
   // icon: one of EXPENSE_ICONS, or empty for the picture the page picks from the name.
   new Schema({ name: { type: String, required: true }, icon: { type: String, default: '' }, order: { type: Number, default: 0 }, active: { type: Boolean, default: true } }, opts),
 )
 
 // Money the gym spends: rent, electricity, repairs and so on.
-export const Expense = model(
+export const Expense = tenantModel(
   'Expense',
   new Schema(
     {
@@ -111,7 +112,7 @@ export const Expense = model(
 )
 
 // The photo or PDF of one expense's receipt. Kept apart so the expense lists stay small.
-export const ExpenseReceipt = model(
+export const ExpenseReceipt = tenantModel(
   'ExpenseReceipt',
   new Schema(
     {
@@ -124,7 +125,7 @@ export const ExpenseReceipt = model(
 )
 
 // Things the gym sells: protein, creatine, T-shirts and so on. `stock` is kept in step with StockMove.
-export const Product = model(
+export const Product = tenantModel(
   'Product',
   new Schema(
     {
@@ -142,7 +143,7 @@ export const Product = model(
 
 // buy: stock bought (money out). sell: sold to a customer (money in).
 // adjust: count correction or opening stock (no money); qty can be negative.
-export const StockMove = model(
+export const StockMove = tenantModel(
   'StockMove',
   new Schema(
     {
@@ -165,7 +166,7 @@ export const DEFAULT_STOCK_CATEGORIES = ['Protein', 'Creatine', 'Mass gainer', '
 
 export const DEFAULT_EXPENSE_CATEGORIES =['Electricity', 'Cleaning', 'Maintenance', 'Repair', 'Other']
 
-const Settings = model(
+const Settings = tenantModel(
   'Settings',
   new Schema(
     {
@@ -189,7 +190,7 @@ const Settings = model(
   ),
 )
 
-const Counter = model('Counter', new Schema({ _id: String, seq: Number }, { versionKey: false }))
+const Counter = tenantModel('Counter', new Schema({ _id: String, seq: Number }, { versionKey: false }))
 
 export async function getSettings() {
   return Settings.findOneAndUpdate(

@@ -3,7 +3,9 @@ import { getSettings } from '../db.js'
 import { loadSummaries } from '../service.js'
 import { config } from './config.js'
 import { WaRecipientError, WaUnavailableError } from './errors.js'
-import { log } from './index.js'
+import { Account, accountRef } from '../accounts.js'
+import { currentAccount, runAs } from '../tenant.js'
+import { log, setReadyHook, waFor } from './index.js'
 import { Reminder } from './models.js'
 
 // The one reminder text, used for both messages. It is fixed on purpose: the owner does not edit it.
@@ -80,11 +82,14 @@ export async function queueReminders({ wa, today = todayStr(), now = new Date() 
   return queued
 }
 
-// One run at a time. A second call while one is running makes it run once more afterwards,
+// One run at a time per gym. A second call while one is running makes it run once more afterwards,
 // so a message queued in between is not left waiting and nothing is ever sent twice.
-const run = { active: false, again: false }
+const runs = new Map() // account id -> { active, again }
 
 export async function sendPending(options) {
+  const { id } = currentAccount()
+  if (!runs.has(id)) runs.set(id, { active: false, again: false })
+  const run = runs.get(id)
   if (run.active) {
     run.again = true
     return
@@ -174,19 +179,28 @@ export function closeWhenIdle(wa) {
   setTimeout(() => wa.closeIfIdle().catch(() => {}), config.idleCloseMs + 1000).unref?.()
 }
 
-// Starts the background job: every few minutes queue what is due, send it, then disconnect.
-export function startReminderJob(wa) {
-  // As soon as WhatsApp connects (QR scan or background start), send what is pending.
-  wa.setReadyHandler(async () => {
+// Starts the background job: every few minutes, for every gym account, queue what is due, send it,
+// then disconnect. Each gym's work runs in its own database with its own WhatsApp number.
+export function startReminderJob() {
+  // As soon as a gym's WhatsApp connects (QR scan or background start), send what is pending there.
+  setReadyHook(async (wa) => {
     await sendPending({ wa })
     closeWhenIdle(wa)
   })
   const tick = async () => {
-    try {
-      await queueReminders({ wa })
-      await sendPending({ wa })
-    } catch (err) {
-      log.error('JOB_ERROR', err.message)
+    const accounts = await Account.find({}, { name: 1, email: 1, dbName: 1, waSessionId: 1 })
+      .lean()
+      .catch((err) => (log.error('JOB_ERROR', err.message), []))
+    for (const account of accounts.map(accountRef)) {
+      try {
+        await runAs(account, async () => {
+          const wa = await waFor(account)
+          await queueReminders({ wa })
+          await sendPending({ wa })
+        })
+      } catch (err) {
+        log.error('JOB_ERROR', `${account.name || account.id}: ${err.message}`)
+      }
     }
   }
   const first = setTimeout(tick, 20000)

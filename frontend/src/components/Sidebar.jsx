@@ -21,7 +21,7 @@ const GROUPS = [
 
 // The menu on the left of every app page on a laptop or desktop. A phone or tablet has the bottom bar in App.jsx instead.
 export default function Sidebar() {
-  const { settings, logout } = useApp()
+  const { settings, account, logout } = useApp()
 
   return (
     <aside className="side">
@@ -49,7 +49,7 @@ export default function Sidebar() {
           <Avatar name={settings.gymName} />
           <span>
             <b>{settings.gymName}</b>
-            <small>{settings.loginMobile || 'Owner account'}</small>
+            <small>{account.email || account.loginMobile || 'Owner account'}</small>
           </span>
         </Link>
         <button className="side-link danger" onClick={logout}>

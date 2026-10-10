@@ -1,3 +1,4 @@
+import { runAs } from '../tenant.js'
 import { BaileysClient } from './baileysClient.js'
 import { config } from './config.js'
 import { WaState } from './models.js'
@@ -10,7 +11,7 @@ const print = (level) => (event, detail) => {
 }
 const log = { info: print('log'), warn: print('warn'), error: print('error') }
 
-// The gym has one WhatsApp number, so there is exactly one session.
+// One gym's WhatsApp number: exactly one session per account.
 class WhatsAppService {
   constructor(deps) {
     this.deps = deps
@@ -99,19 +100,47 @@ class WhatsAppService {
   }
 }
 
-const store = {
-  load: () => WaState.findById('main').lean(),
-  save: (data) => WaState.updateOne({ _id: 'main' }, { $set: data }, { upsert: true }),
+// Every gym account has its own WhatsApp number, saved login and connection. A service is created and
+// started the first time an account needs it; all its database work runs in that account's gym.
+const services = new Map() // account id -> Promise<WhatsAppService>
+let readyHook = null
+
+// Called (inside the account's gym) every time one of the connections becomes ready.
+export function setReadyHook(fn) {
+  readyHook = fn
 }
 
-export const wa = new WhatsAppService({
-  config,
-  store,
-  profile,
-  log,
-  createClient: ({ sessionId }) => new BaileysClient({ sessionId }),
-  // Loaded only when a QR code is actually shown.
-  toQrDataUrl: async (qr) => (await import('qrcode')).default.toDataURL(qr, { width: 300, margin: 1 }),
-})
+export function waFor(account) {
+  if (!services.has(account.id)) {
+    const inGym = (fn) => runAs(account, fn)
+    const service = new WhatsAppService({
+      config,
+      sessionId: account.waSessionId,
+      store: {
+        load: () => inGym(() => WaState.findById('main').lean()),
+        save: (data) => inGym(() => WaState.updateOne({ _id: 'main' }, { $set: data }, { upsert: true })),
+      },
+      profile: {
+        load: () => inGym(() => profile.load()),
+        hasSavedSession: (id) => profile.hasSavedSession(id),
+        wipe: (id) => inGym(() => profile.wipe(id)),
+      },
+      log,
+      createClient: ({ sessionId }) => new BaileysClient({ sessionId, account }),
+      // Loaded only when a QR code is actually shown.
+      toQrDataUrl: async (qr) => (await import('qrcode')).default.toDataURL(qr, { width: 300, margin: 1 }),
+    })
+    service.setReadyHandler(() => inGym(() => readyHook?.(service)))
+    const started = inGym(() => service.start()).then(() => service)
+    started.catch(() => services.delete(account.id)) // a failed start is tried again next time
+    services.set(account.id, started)
+  }
+  return services.get(account.id)
+}
+
+export async function shutdownAll() {
+  const all = await Promise.allSettled(services.values())
+  await Promise.all(all.filter((r) => r.status === 'fulfilled').map((r) => r.value.shutdown()))
+}
 
 export { WhatsAppService, log }

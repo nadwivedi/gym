@@ -5,7 +5,7 @@ import { MoneyInput } from '../components/fields.jsx'
 import { Badge, ErrorBox, Field, Group, Icon, Sheet } from '../components/ui.jsx'
 import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
-import { capTyped, mobileDigits, money } from '../format.js'
+import { capTyped, money } from '../format.js'
 import { getTheme, setTheme } from '../theme.js'
 
 const THEMES = [
@@ -316,10 +316,10 @@ function Appearance() {
   )
 }
 
-// Login mobile number and password. Saving signs every other device out.
+// Login email and password. Saving signs every other device out.
 function LoginDetails() {
-  const { settings, reloadApp } = useApp()
-  const [mobile, setMobile] = useState(settings.loginMobile || '')
+  const { account, reloadApp } = useApp()
+  const [email, setEmail] = useState(account.email)
   const [newPassword, setNewPassword] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [saved, setSaved] = useState(false)
@@ -328,10 +328,10 @@ function LoginDetails() {
   const save = async (e) => {
     e.preventDefault()
     setSaved(false)
-    const res = await run(() => api('/auth/change-login', { method: 'POST', body: { currentPassword, mobile, newPassword } }))
+    const res = await run(() => api('/auth/change-login', { method: 'POST', body: { currentPassword, email, newPassword } }))
     if (!res) return
     setToken(res.token)
-    setMobile(res.loginMobile)
+    setEmail(res.email)
     setNewPassword('')
     setCurrentPassword('')
     setSaved(true)
@@ -341,16 +341,17 @@ function LoginDetails() {
   return (
     <form className="card form" onSubmit={save}>
       <div className="field-row">
-        <Field label="Login mobile number">
+        <Field label="Login email">
           <input
-            type="tel"
-            inputMode="numeric"
-            pattern="\d{10}"
-            title="Enter a 10-digit mobile number"
+            type="email"
             autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={254}
             required
-            value={mobile}
-            onChange={(e) => setMobile(mobileDigits(e.target.value))}
+            placeholder={account.loginMobile ? `Add an email (you log in with ${account.loginMobile} now)` : undefined}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </Field>
         <Field label="New password">

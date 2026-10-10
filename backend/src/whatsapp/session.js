@@ -37,11 +37,11 @@ export class Mutex {
 export class WhatsAppSession {
   /**
    * @param {object} deps
-   *   config, store: { load(), save(data) }, createClient({ sessionId }),
+   *   config, sessionId, store: { load(), save(data) }, createClient({ sessionId }),
    *   profile: { hasSavedSession(id), wipe(id) }, log, toQrDataUrl(qr), onReady()
    */
   constructor(deps) {
-    this.sessionId = 'gym'
+    this.sessionId = deps.sessionId || 'gym'
     this.deps = deps
     this.config = deps.config
 

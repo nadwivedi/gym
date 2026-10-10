@@ -1,6 +1,6 @@
 # Gym Members
 
-Member admission, renewals, payments, dues, expenses and a stock shop (protein, creatine, clothes…) for one gym, with a dashboard of income, expenses and profit. Mobile-first web app.
+Member admission, renewals, payments, dues, expenses and a stock shop (protein, creatine, clothes…) for any number of gyms, each with its own account and its own data, with a dashboard of income, expenses and profit. Mobile-first web app.
 
 ## Start
 
@@ -13,9 +13,9 @@ npm --prefix backend run dev        # API on http://localhost:4000
 npm --prefix frontend run dev       # app on http://localhost:5173 (also on your phone, same Wi-Fi)
 ```
 
-The first visit asks you to create a login (mobile number + password). Set plan prices under **More → Plans and prices**.
+Open `/login` and use **Sign Up** (your name, gym name, email, password) to create a gym account, then log in with the email and password. Set plan prices under **More → Plans and prices**.
 
-Forgot the password? On the gym PC run `npm --prefix backend run reset-login`, then open the app and create a new login. No gym data is changed.
+Forgot the password? On the server run `npm --prefix backend run reset-login -- owner@example.com newpassword`. Every device of that account is signed out; no gym data is changed.
 
 ## Other commands
 
@@ -38,6 +38,12 @@ npm --prefix frontend run build     # build the screens; `npm --prefix backend s
 - Two messages per member and renewal date, never more: on the renewal date and 2 days after, only if not renewed and not hidden.
 - On demand: the server connects only when a reminder is pending and disconnects after 60 seconds idle. The login is stored in MongoDB.
 - Sent between 8:00 and 21:00, at most 10 an hour and 40 a day, a few seconds apart. Change with `WHATSAPP_*` environment variables (see `whatsapp/config.js`).
+
+## Accounts
+
+- Every gym owner signs up with name, gym name, email and password. Accounts are kept in the `MONGO_URL` database; each account's gym data lives in its own database next to it (`<database>_<account id>`), so one gym can never see another's members, payments or WhatsApp number (`backend/src/tenant.js`).
+- A gym from the one-gym version (owner login with a mobile number) becomes the first account on the first start, with its data left where it is. Log in with the same mobile number and password, then add an email under **More → Login details**.
+- Each account links its own WhatsApp number; the reminder job sends each gym's reminders from its own number.
 
 ## Rules worth knowing
 

@@ -2367,6 +2367,51 @@ ul.plain {
   border-radius: 13px;
 }
 
+/* Login | Sign Up switch above the form heading. */
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 26px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.auth-tabs button {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.auth-tabs button:hover {
+  color: var(--text);
+}
+
+.auth-tabs button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: var(--shadow-sm);
+}
+
+:root[data-theme='dark'] .auth-tabs button[aria-selected='true'] {
+  background: var(--brand-soft);
+}
+
+.auth-tabs button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
 .auth-head {
   margin-bottom: 22px;
 }
@@ -2481,6 +2526,14 @@ ul.plain {
 
 .auth-link.center {
   align-self: center;
+}
+
+/* "Don't have an account? Sign Up" under each form. */
+.auth-switch {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--muted);
 }
 
 .auth-btn {

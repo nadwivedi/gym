@@ -1,6 +1,7 @@
 import express from 'express'
 import { EXPENSE_ICONS, PAYMENT_MODES, addMonths, memberAge, memberState, overlaps, todayStr } from '../../shared/domain.mjs'
-import { checkPassword, hashPassword, makeToken, newSecret, verifyToken } from './auth.js'
+import { Account, accountRef, createAccount } from './accounts.js'
+import { checkPassword, hashPassword, makeToken, newSecret, tokenAccountId, verifyToken } from './auth.js'
 import { toCsv } from './csv.js'
 import {
   DEFAULT_STOCK_CATEGORIES,
@@ -17,9 +18,11 @@ import {
   logEntry,
   nextMemberNo,
   out,
+  seedDefaults,
 } from './db.js'
 import { loadSummaries, memberDetail, moneyFor } from './service.js'
 import { buildYearStats } from './stats.js'
+import { prepareAccount, runAs, runPrepared } from './tenant.js'
 import { dateOf, fail, idOf, intOf, moneyOf, phoneOf, str } from './validate.js'
 import { whatsappRoutes } from './whatsapp/routes.js'
 
@@ -28,6 +31,23 @@ const LOCK_MS = 60000
 
 const passwordOf = (v) =>
   typeof v === 'string' && v.length >= 6 && v.length <= 100 ? v : fail(400, 'Password must be at least 6 characters')
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const emailOf = (v) => {
+  const email = str(v, 254).toLowerCase()
+  return EMAIL.test(email) ? email : fail(400, 'Enter a valid email address')
+}
+
+// What was typed in the login box: an email, or the mobile number of a gym from the one-gym version.
+function loginNameOf(v) {
+  const text = str(v, 254)
+  if (!/^[\d\s+()-]+$/.test(text)) {
+    const email = emailOf(text)
+    return { key: email, query: { email } }
+  }
+  const mobile = loginMobileOf(text)
+  return { key: mobile, query: { loginMobile: mobile } }
+}
 
 // "+91 98765 43210", "098765 43210" and "9876543210" are all the same login.
 function loginMobileOf(v) {
@@ -54,7 +74,6 @@ function paidDateOf(v, name) {
 
 const publicSettings = (s) => ({
   gymName: s.gymName,
-  loginMobile: s.loginMobile,
   admissionFee: s.admissionFee,
   overdueDays: s.overdueDays,
   countryCode: s.countryCode,
@@ -231,64 +250,83 @@ function buildPayment(body, total) {
 
 export function api() {
   const r = express.Router()
-  // Wrong passwords lock the login for a minute after a few tries.
-  let fails = 0
-  let lockedUntil = 0
-  const checkNotLocked = () => Date.now() < lockedUntil && fail(429, 'Too many wrong tries. Wait one minute and try again.')
-  const wrongTry = (message) => {
-    if (++fails >= MAX_LOGIN_FAILS) {
-      fails = 0
-      lockedUntil = Date.now() + LOCK_MS
-    }
+  // Wrong passwords lock that one login (email or mobile number) for a minute after a few tries.
+  const tries = new Map() // login name -> { fails, lockedUntil }
+  const checkNotLocked = (name) => Date.now() < (tries.get(name)?.lockedUntil || 0) && fail(429, 'Too many wrong tries. Wait one minute and try again.')
+  const wrongTry = (name, message) => {
+    const t = tries.get(name) || { fails: 0, lockedUntil: 0 }
+    if (++t.fails >= MAX_LOGIN_FAILS) Object.assign(t, { fails: 0, lockedUntil: Date.now() + LOCK_MS })
+    tries.set(name, t)
     fail(401, message)
   }
 
-  r.get('/auth/status', async (req, res) => {
-    const s = await getSettings()
-    res.json({ accountSet: !!s.passHash, gymName: s.gymName })
+  r.get('/auth/status', (req, res) => res.json({ ok: true }))
+
+  // A new gym owner: their own account and their own, empty gym.
+  r.post('/auth/signup', async (req, res) => {
+    const b = req.body || {}
+    const name = str(b.name, 60) || fail(400, 'Your name is required')
+    const gymName = str(b.gymName, 60) || fail(400, 'Gym name is required')
+    const loginMobile = loginMobileOf(b.mobile)
+    const email = emailOf(b.email)
+    const { salt, hash } = hashPassword(passwordOf(b.password))
+    const taken = (field) => fail(409, `An account with this ${field} already exists. Please log in.`)
+    if (await Account.exists({ loginMobile })) taken('mobile number')
+    if (await Account.exists({ email })) taken('email')
+    const account = await createAccount({ name, email, loginMobile, passHash: hash, passSalt: salt }).catch((err) =>
+      err?.code === 11000 ? taken(err.keyPattern?.loginMobile ? 'mobile number' : 'email') : Promise.reject(err),
+    )
+    await runAs(accountRef(account), async () => {
+      await seedDefaults()
+      const s = await getSettings()
+      s.gymName = gymName
+      await s.save()
+    })
+    res.status(201).json({ token: makeToken(account.secret, account._id) })
   })
 
-  // First visit: the mobile number and password typed become the login. A gym's old PIN is dropped.
-  r.post('/auth/setup', async (req, res) => {
-    const s = await getSettings()
-    if (s.passHash) fail(409, 'An account already exists. Please log in.')
-    s.loginMobile = loginMobileOf(req.body?.mobile)
-    setPassword(s, passwordOf(req.body?.password))
-    s.pinHash = ''
-    s.pinSalt = ''
-    await s.save()
-    res.json({ token: makeToken(s.secret) })
-  })
-
+  // Log in with email or mobile number + password.
   r.post('/auth/login', async (req, res) => {
-    checkNotLocked()
-    const s = await getSettings()
-    const mobile = loginMobileOf(req.body?.mobile)
-    if (mobile !== s.loginMobile || !checkPassword(String(req.body?.password ?? ''), s.passSalt, s.passHash)) {
-      wrongTry('Wrong mobile number or password')
+    const login = loginNameOf(req.body?.email ?? req.body?.mobile)
+    checkNotLocked(login.key)
+    const account = await Account.findOne(login.query)
+    if (!account || !checkPassword(String(req.body?.password ?? ''), account.passSalt, account.passHash)) {
+      wrongTry(login.key, 'Wrong mobile number, email or password')
     }
-    fails = 0
-    res.json({ token: makeToken(s.secret) })
+    tries.delete(login.key)
+    res.json({ token: makeToken(account.secret, account._id) })
   })
 
-  // Everything below needs a valid login.
+  // Everything below needs a valid login, and works only on that account's own gym.
   r.use(async (req, res, next) => {
-    const s = await getSettings()
     const token = (req.headers.authorization || '').replace(/^Bearer /, '')
-    if (!s.passHash || !verifyToken(s.secret, token)) fail(401, 'Please log in')
-    req.settings = s
-    next()
+    const id = tokenAccountId(token)
+    const account = id && (await Account.findById(id))
+    if (!account || !verifyToken(account.secret, token)) fail(401, 'Please log in')
+    req.account = account
+    const ref = accountRef(account)
+    await prepareAccount(ref)
+    runPrepared(ref, async () => {
+      try {
+        req.settings = await getSettings()
+        next()
+      } catch (err) {
+        next(err)
+      }
+    })
   })
 
-  // Change the login mobile number and/or password. Signs every other device out.
+  // Change the login email and/or password. Signs every other device out.
   r.post('/auth/change-login', async (req, res) => {
-    const s = req.settings
-    if (!checkPassword(String(req.body?.currentPassword ?? ''), s.passSalt, s.passHash)) fail(400, 'Current password is wrong')
-    s.loginMobile = loginMobileOf(req.body?.mobile)
-    if (req.body?.newPassword) setPassword(s, passwordOf(req.body.newPassword))
-    s.secret = newSecret()
-    await s.save()
-    res.json({ token: makeToken(s.secret), loginMobile: s.loginMobile })
+    const a = req.account
+    if (!checkPassword(String(req.body?.currentPassword ?? ''), a.passSalt, a.passHash)) fail(400, 'Current password is wrong')
+    const email = emailOf(req.body?.email)
+    if (email !== a.email && (await Account.exists({ email, _id: { $ne: a._id } }))) fail(409, 'Another account already uses this email')
+    a.email = email
+    if (req.body?.newPassword) setPassword(a, passwordOf(req.body.newPassword))
+    a.secret = newSecret()
+    await a.save()
+    res.json({ token: makeToken(a.secret, a._id), email: a.email })
   })
 
   r.get('/bootstrap', async (req, res) => {
@@ -296,6 +334,7 @@ export function api() {
     res.json({
       today: todayStr(),
       settings: publicSettings(req.settings),
+      account: { name: req.account.name, email: req.account.email || '', loginMobile: req.account.loginMobile || '' },
       plans: plans.map(out),
       expenseCategories: expenseCategories.map(out),
       modes: PAYMENT_MODES,

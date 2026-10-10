@@ -16,17 +16,21 @@ export function checkPassword(password, salt, hash) {
 
 const sign = (secret, text) => crypto.createHmac('sha256', secret).update(text).digest('hex')
 
-export function makeToken(secret) {
-  const exp = String(Date.now() + TOKEN_DAYS * 86400000)
-  return `${exp}.${sign(secret, exp)}`
+// A login token: <account id>.<expiry>.<signature>, signed with that account's own secret.
+export function makeToken(secret, accountId) {
+  const body = `${accountId}.${Date.now() + TOKEN_DAYS * 86400000}`
+  return `${body}.${sign(secret, body)}`
 }
 
+// The account a token claims to belong to (check it with verifyToken before trusting it).
+export const tokenAccountId = (token) => (typeof token === 'string' && /^[a-f\d]{24}\.\d+\.[a-f\d]{64}$/.test(token) ? token.split('.')[0] : null)
+
 export function verifyToken(secret, token) {
-  if (typeof token !== 'string') return false
-  const [exp, mac] = token.split('.')
-  if (!exp || !mac || Number(exp) < Date.now()) return false
+  if (!tokenAccountId(token)) return false
+  const [id, exp, mac] = token.split('.')
+  if (Number(exp) < Date.now()) return false
   const a = Buffer.from(mac)
-  const b = Buffer.from(sign(secret, exp))
+  const b = Buffer.from(sign(secret, `${id}.${exp}`))
   return a.length === b.length && crypto.timingSafeEqual(a, b)
 }
 

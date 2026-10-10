@@ -62,9 +62,10 @@ function retryCounterCache(sessionId) {
 }
 
 export class BaileysClient extends EventEmitter {
-  constructor({ sessionId }) {
+  constructor({ sessionId, account }) {
     super()
     this.sessionId = sessionId
+    this.account = account // the gym whose saved login this is
     this.sock = null
     this.socketGen = 0
     this.closing = false
@@ -82,10 +83,10 @@ export class BaileysClient extends EventEmitter {
   async initialize() {
     this.closing = false
     this.baileys = await loadBaileys()
-    const { state, saveCreds } = await useMongoAuthState(this.sessionId, this.baileys)
+    const { state, saveCreds } = await useMongoAuthState(this.sessionId, this.baileys, this.account)
     this.authState = state
     this._saveCreds = saveCreds
-    this.sent = sentMessageStore(this.sessionId, this.baileys)
+    this.sent = sentMessageStore(this.sessionId, this.baileys, this.account)
     this.version = undefined // bundled version first (see fetchCurrentWaVersion)
     if (this.closing) throw new Error('Connection closed before start')
 

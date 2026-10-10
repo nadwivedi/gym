@@ -5,6 +5,7 @@ import { after, before, beforeEach, test } from 'node:test'
 import mongoose from 'mongoose'
 import { addDays, addMonths, todayStr } from '../../shared/domain.mjs'
 import { Member, Period, getSettings } from '../src/db.js'
+import { useAccountForScript } from '../src/tenant.js'
 import { config } from '../src/whatsapp/config.js'
 import { WaRecipientError, WaUnavailableError } from '../src/whatsapp/errors.js'
 import { Reminder } from '../src/whatsapp/models.js'
@@ -46,6 +47,8 @@ const reminders = async (filter = {}) => (await Reminder.find(filter).sort({ mem
 before(async () => {
   await mongoose.connect(TEST_DB)
   await mongoose.connection.dropDatabase()
+  // The whole file works on one gym: the test database itself.
+  await useAccountForScript({ id: 'test', dbName: mongoose.connection.name, waSessionId: 'test' })
   await Reminder.init() // build the unique index before the first insert
   const s = await getSettings()
   s.gymName = 'Iron Temple Gym'

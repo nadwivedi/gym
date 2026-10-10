@@ -3,9 +3,8 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import mongoose from 'mongoose'
 import { addDays, addMonths, todayStr } from '../../shared/domain.mjs'
+import { Account } from '../src/accounts.js'
 import { createApp } from '../src/app.js'
-import { hashPassword } from '../src/auth.js'
-import { getSettings, seedDefaults } from '../src/db.js'
 
 const TEST_DB = process.env.MONGO_TEST_URL || 'mongodb://127.0.0.1:27017/gymsoft_test'
 const today = todayStr()
@@ -41,45 +40,83 @@ async function admit(name, { months = 1, startDate = today, fee = 1000, admissio
   })
 }
 
+// The test database and every gym database made from it (gymsoft_test_<account id>).
+async function dropTestDatabases() {
+  const { databases } = await mongoose.connection.db.admin().listDatabases({ nameOnly: true })
+  const main = mongoose.connection.name
+  for (const { name } of databases) if (name === main || name.startsWith(`${main}_`)) await mongoose.connection.useDb(name).dropDatabase()
+}
+
 before(async () => {
   await mongoose.connect(TEST_DB)
-  await mongoose.connection.dropDatabase()
-  await seedDefaults()
+  await dropTestDatabases()
   server = createApp().listen(0)
   base = `http://127.0.0.1:${server.address().port}/api`
 })
 
 after(async () => {
   server.close()
-  await mongoose.connection.dropDatabase()
+  await dropTestDatabases()
   await mongoose.disconnect()
 })
 
-test('login: first mobile + password (old PIN dropped), wrong tries, and locked routes', async () => {
-  // A gym from before mobile + password logins has only a PIN.
-  const s = await getSettings()
-  const { salt, hash } = hashPassword('1234')
-  Object.assign(s, { pinSalt: salt, pinHash: hash, gymName: 'Test Gym' })
-  await s.save()
-  assert.deepEqual(await ok('GET', '/auth/status'), { accountSet: false, gymName: 'Test Gym' })
+test('sign up, log in, wrong tries, and locked routes', async () => {
+  assert.deepEqual(await ok('GET', '/auth/status'), { ok: true })
   assert.equal((await call('GET', '/members')).status, 401)
 
-  const account = { mobile: '+91 98765 43210', password: 'secret12' }
-  assert.equal((await call('POST', '/auth/setup', { ...account, password: 'abc' })).status, 400)
-  assert.equal((await call('POST', '/auth/setup', { ...account, mobile: '12345' })).status, 400)
-  token = (await ok('POST', '/auth/setup', account)).token
-  assert.equal((await getSettings()).pinHash, '')
-  assert.deepEqual(await ok('GET', '/auth/status'), { accountSet: true, gymName: 'Test Gym' })
-  assert.equal((await call('POST', '/auth/setup', account)).status, 409)
+  const account = { name: 'Test Owner', gymName: 'Test Gym', mobile: '9876500001', email: 'Owner@Test.in', password: 'secret12' }
+  assert.equal((await call('POST', '/auth/signup', { ...account, password: 'abc' })).status, 400)
+  assert.equal((await call('POST', '/auth/signup', { ...account, mobile: '12345' })).status, 400)
+  assert.equal((await call('POST', '/auth/signup', { ...account, mobile: undefined })).status, 400)
+  assert.equal((await call('POST', '/auth/signup', { ...account, email: 'not-an-email' })).status, 400)
+  assert.equal((await call('POST', '/auth/signup', { ...account, gymName: ' ' })).status, 400)
+  token = (await ok('POST', '/auth/signup', account)).token
+  assert.equal((await call('POST', '/auth/signup', { ...account, mobile: '9876500002', email: 'owner@test.in' })).status, 409) // same email, any case
+  assert.equal((await call('POST', '/auth/signup', { ...account, mobile: '+91 98765 00001', email: 'new@test.in' })).status, 409) // same mobile
 
-  assert.equal((await call('POST', '/auth/login', { mobile: '9876543210', password: 'wrong-pass' })).status, 401)
-  assert.equal((await call('POST', '/auth/login', { mobile: '9876500000', password: 'secret12' })).status, 401)
-  token = (await ok('POST', '/auth/login', { mobile: '09876543210', password: 'secret12' })).token
+  assert.equal((await call('POST', '/auth/login', { email: 'owner@test.in', password: 'wrong-pass' })).status, 401)
+  assert.equal((await call('POST', '/auth/login', { email: 'someone@test.in', password: 'secret12' })).status, 401)
+  assert.equal((await call('POST', '/auth/login', { email: 'nonsense', password: 'secret12' })).status, 400)
+  await ok('POST', '/auth/login', { mobile: '9876500001', password: 'secret12' })
+  token = (await ok('POST', '/auth/login', { email: ' OWNER@test.in ', password: 'secret12' })).token
   const boot = await ok('GET', '/bootstrap')
-  assert.equal(boot.settings.loginMobile, '9876543210')
+  assert.deepEqual(boot.account, { name: 'Test Owner', email: 'owner@test.in', loginMobile: '9876500001' })
   plans = boot.plans
   assert.equal(boot.settings.gymName, 'Test Gym')
   assert.equal(plans.length, 4)
+
+  // Five wrong passwords lock that login for a minute, even for the right password; other logins are not affected.
+  for (let i = 0; i < 5; i++) await call('POST', '/auth/login', { email: 'locked@test.in', password: 'wrong-pass' })
+  assert.equal((await call('POST', '/auth/login', { email: 'locked@test.in', password: 'wrong-pass' })).status, 429)
+  await ok('POST', '/auth/login', { email: 'owner@test.in', password: 'secret12' })
+})
+
+test('every account sees only its own gym', async () => {
+  const mine = token
+  await admit('Private Priya', { phone: '9800000001' })
+  const other = (await ok('POST', '/auth/signup', { name: 'Other Owner', gymName: 'Other Gym', mobile: '9876500003', email: 'other@test.in', password: 'secret34' })).token
+
+  token = other
+  assert.equal((await ok('GET', '/bootstrap')).settings.gymName, 'Other Gym')
+  assert.deepEqual(await ok('GET', '/members'), [])
+  assert.doesNotMatch(await ok('GET', '/export/members.csv'), /Private Priya/)
+
+  // The first gym's member cannot be opened with the other account's login.
+  token = mine
+  const [priya] = await ok('GET', '/members')
+  token = other
+  assert.equal((await call('GET', `/members/${priya.id}`)).status, 404)
+
+  // A token is tied to its account: one account's id with another account's signature is refused.
+  token = `${other.split('.')[0]}.${mine.split('.').slice(1).join('.')}`
+  assert.equal((await call('GET', '/members')).status, 401)
+
+  // Each account has its own database.
+  const dbs = (await Account.find({}, { dbName: 1 }).lean()).map((a) => a.dbName)
+  assert.equal(new Set(dbs).size, dbs.length)
+
+  token = mine
+  await ok('DELETE', `/members/${priya.id}`)
 })
 
 test('admission: start date in the future, part payment, then more part payments', async () => {
@@ -524,7 +561,8 @@ test('expenses: bill details and the receipt file', async () => {
   assert.equal((await call('GET', `/expenses/${bill.id}/receipt`)).status, 404)
   assert.equal((await send(bill.id, 'application/pdf', pdf)).status, 200)
   await ok('DELETE', `/expenses/${bill.id}`)
-  assert.equal(await mongoose.connection.db.collection('expensereceipts').countDocuments(), 0)
+  const { dbName } = await Account.findOne({ email: 'owner@test.in' }).lean()
+  assert.equal(await mongoose.connection.useDb(dbName).db.collection('expensereceipts').countDocuments(), 0)
 })
 
 test('exports and settings', async () => {
@@ -538,12 +576,14 @@ test('exports and settings', async () => {
   assert.equal(p.price, 1500)
   // Changing the login signs the old token out.
   const oldToken = token
-  assert.equal((await call('POST', '/auth/change-login', { currentPassword: 'nope', mobile: '9876543210' })).status, 400)
-  const changed = await ok('POST', '/auth/change-login', { currentPassword: 'secret12', mobile: '9123456780', newPassword: 'newpass99' })
-  assert.equal(changed.loginMobile, '9123456780')
+  assert.equal((await call('POST', '/auth/change-login', { currentPassword: 'nope', email: 'owner@test.in' })).status, 400)
+  assert.equal((await call('POST', '/auth/change-login', { currentPassword: 'secret12', email: 'other@test.in' })).status, 409) // taken
+  const changed = await ok('POST', '/auth/change-login', { currentPassword: 'secret12', email: 'new@test.in', newPassword: 'newpass99' })
+  assert.equal(changed.email, 'new@test.in')
   token = changed.token
-  assert.equal((await call('POST', '/auth/login', { mobile: '9123456780', password: 'secret12' })).status, 401)
-  await ok('POST', '/auth/login', { mobile: '9123456780', password: 'newpass99' })
+  assert.equal((await call('POST', '/auth/login', { email: 'new@test.in', password: 'secret12' })).status, 401)
+  assert.equal((await call('POST', '/auth/login', { email: 'owner@test.in', password: 'newpass99' })).status, 401)
+  await ok('POST', '/auth/login', { email: 'new@test.in', password: 'newpass99' })
   const saved = token
   token = oldToken
   assert.equal((await call('GET', '/members')).status, 401)

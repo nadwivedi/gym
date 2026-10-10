@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
+import { tenantModel } from '../tenant.js'
 
-const { Schema, model } = mongoose
+const { Schema } = mongoose
 
 // WhatsApp (Baileys) login data: one document per credential / Signal key.
 // Values are BufferJSON-encoded strings. Treat as secret (equivalent to a private key).
@@ -13,7 +14,7 @@ const waAuthKeySchema = new Schema(
   { versionKey: false, timestamps: true },
 )
 waAuthKeySchema.index({ sessionId: 1, key: 1 }, { unique: true })
-export const WaAuthKey = model('WaAuthKey', waAuthKeySchema)
+export const WaAuthKey = tenantModel('WaAuthKey', waAuthKeySchema)
 
 // Copies of messages we sent, so WhatsApp re-send requests ("Waiting for this message" on the
 // member's phone) can be answered even after a reconnect. Kept for 14 days.
@@ -27,10 +28,10 @@ const waSentMessageSchema = new Schema(
   { versionKey: false },
 )
 waSentMessageSchema.index({ sessionId: 1, msgId: 1 }, { unique: true })
-export const WaSentMessage = model('WaSentMessage', waSentMessageSchema)
+export const WaSentMessage = tenantModel('WaSentMessage', waSentMessageSchema)
 
 // The one WhatsApp connection of the gym: what the status screen shows.
-export const WaState = model(
+export const WaState = tenantModel(
   'WaState',
   new Schema(
     {
@@ -68,4 +69,4 @@ const reminderSchema = new Schema(
 reminderSchema.index({ key: 1 }, { unique: true, partialFilterExpression: { key: { $type: 'string' } } })
 reminderSchema.index({ status: 1, scheduledFor: 1 })
 reminderSchema.index({ status: 1, sentAt: 1 })
-export const Reminder = model('Reminder', reminderSchema)
+export const Reminder = tenantModel('Reminder', reminderSchema)

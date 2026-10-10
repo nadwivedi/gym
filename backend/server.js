@@ -2,8 +2,8 @@ import './src/env.js'
 import os from 'node:os'
 import mongoose from 'mongoose'
 import { createApp } from './src/app.js'
-import { seedDefaults } from './src/db.js'
-import { wa } from './src/whatsapp/index.js'
+import { adoptExistingGym } from './src/accounts.js'
+import { shutdownAll } from './src/whatsapp/index.js'
 import { startReminderJob } from './src/whatsapp/reminders.js'
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/gymsoft'
@@ -18,11 +18,12 @@ try {
   console.error(`Could not connect to MongoDB at ${SAFE_MONGO_URL}. Is the MongoDB service running?\n${err.message}`)
   process.exit(1)
 }
-await seedDefaults()
+// A gym from the one-gym version becomes the first account, with its data where it is.
+const adopted = await adoptExistingGym()
+if (adopted) console.log(`Existing gym "${adopted.name}" is now an account: log in with its mobile number and password.`)
 
-// WhatsApp reminders: nothing connects here. The job opens a connection only when a reminder is due.
-await wa.start().catch((err) => console.error('[WhatsApp] Startup failed:', err.message))
-const stopReminderJob = startReminderJob(wa)
+// WhatsApp reminders: nothing connects here. The job opens a gym's connection only when a reminder is due.
+const stopReminderJob = startReminderJob()
 
 const server = createApp().listen(PORT, '0.0.0.0', () => {
   console.log(`Gym software is running.\n  On this PC:   http://localhost:${PORT}`)
@@ -40,7 +41,7 @@ async function shutdown() {
   closing = true
   stopReminderJob()
   server.close()
-  await wa.shutdown().catch(() => {})
+  await shutdownAll().catch(() => {})
   await mongoose.disconnect().catch(() => {})
   process.exit(0)
 }
