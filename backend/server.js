@@ -1,10 +1,10 @@
-import './env.js'
+import './src/env.js'
 import os from 'node:os'
 import mongoose from 'mongoose'
-import { createApp } from './app.js'
-import { seedDefaults } from './db.js'
-import { wa } from './whatsapp/index.js'
-import { startReminderJob } from './whatsapp/reminders.js'
+import { createApp } from './src/app.js'
+import { seedDefaults } from './src/db.js'
+import { wa } from './src/whatsapp/index.js'
+import { startReminderJob } from './src/whatsapp/reminders.js'
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/gymsoft'
 const PORT = Number(process.env.PORT) || 4000
