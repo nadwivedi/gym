@@ -7,9 +7,31 @@ import { HttpError } from './validate.js'
 
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../frontend/dist')
 
+// Website addresses allowed to call the API from a browser (CORS_ORIGINS in .env, comma-separated).
+// Empty is the usual setup: this server serves the website itself, so no other address needs access.
+const corsOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim().replace(/\/$/, ''))
+  .filter(Boolean)
+
+function cors(req, res, next) {
+  const origin = req.get('Origin')
+  if (!origin || !corsOrigins.includes(origin)) return next()
+  res.set({
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Access-Control-Max-Age': '600',
+    Vary: 'Origin',
+  })
+  if (req.method === 'OPTIONS') return res.sendStatus(204)
+  next()
+}
+
 export function createApp() {
   const app = express()
   app.disable('x-powered-by')
+  if (corsOrigins.length) app.use('/api', cors)
   app.use(express.json({ limit: '200kb' }))
   app.use('/api', api())
 

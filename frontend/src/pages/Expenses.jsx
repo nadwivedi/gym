@@ -42,6 +42,9 @@ export default function Expenses() {
   return (
     <>
       <header className="topbar">
+        <span className="head-icon">
+          <Icon name="receipt" />
+        </span>
         <h1>
           Expenses
           <span className="sub">Track gym spending</span>

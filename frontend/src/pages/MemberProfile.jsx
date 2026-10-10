@@ -6,7 +6,7 @@ import { Avatar, Badge, ContactButtons, ErrorBox, Icon, Loading } from '../compo
 import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
 import { dueInfo, fmtDate, money } from '../format.js'
-import { EditMemberSheet, HideSheet } from '../sheets/MemberSheets.jsx'
+import { DeleteMemberSheet, EditMemberSheet, HideSheet } from '../sheets/MemberSheets.jsx'
 import PaymentEditSheet from '../sheets/PaymentEditSheet.jsx'
 import PaymentSheet from '../sheets/PaymentSheet.jsx'
 import { DeletePeriodSheet, EditPeriodSheet, RefundSheet, WaiveSheet } from '../sheets/PeriodSheets.jsx'
@@ -147,6 +147,11 @@ export default function MemberProfile() {
                 Hide
               </button>
             )}
+            {/* Kept apart at the far end, and it only opens a confirmation. */}
+            <button className="btn small danger del" onClick={() => setSheet({ type: 'delete' })}>
+              <Icon name="trash" />
+              Delete
+            </button>
           </div>
           </div>
         </div>
@@ -285,6 +290,7 @@ export default function MemberProfile() {
       {sheet?.type === 'renew' && <RenewSheet memberId={member.id} onClose={close} onDone={done} />}
       {sheet?.type === 'pay' && <PaymentSheet memberId={member.id} onClose={close} onDone={done} />}
       {sheet?.type === 'hide' && <HideSheet member={member} onClose={close} onDone={done} />}
+      {sheet?.type === 'delete' && <DeleteMemberSheet member={member} onClose={close} onDeleted={() => navigate('/members', { replace: true })} />}
       {sheet?.type === 'editMember' && (
         <EditMemberSheet member={member} onClose={close} onDone={done} onDeleted={() => navigate('/members', { replace: true })} />
       )}

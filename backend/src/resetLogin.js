@@ -1,5 +1,6 @@
 // Forgot password: run on the gym PC (`npm run reset-login`) to remove the owner login.
 // The next visit asks to create a new login. Members, payments and all other data stay as they are.
+import './env.js'
 import mongoose from 'mongoose'
 import { newSecret } from './auth.js'
 import { getSettings } from './db.js'

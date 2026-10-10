@@ -28,6 +28,9 @@ function Head() {
   const { today } = useApp()
   return (
     <header className="topbar rn-head">
+      <span className="head-icon">
+        <Icon name="calendar" />
+      </span>
       <h1>
         Renewals
         <span className="sub">

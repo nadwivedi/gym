@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react'
-import { EXPENSE_ICONS } from '../../../shared/domain.mjs'
 import { api, useAction } from '../api.js'
-import { ErrorBox, Field, Group, Icon, Sheet } from '../components/ui.jsx'
+import { ErrorBox, Field, Sheet } from '../components/ui.jsx'
 import { capTyped } from '../format.js'
 
-// The small popup behind "+ New" in the expense form: a name and, if wanted, a picture for the new category.
+// The small popup behind "+ New" in the expense form: the name of the new category.
 export default function NewCategorySheet({ onClose, onAdded }) {
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState('')
   const { busy, error, run } = useAction()
 
   // Escape closes only this popup, not the expense form underneath it.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Escape') return
-      e.stopPropagation()
+      e.stopImmediatePropagation()
       onClose()
     }
     window.addEventListener('keydown', onKey, true)
@@ -23,7 +21,7 @@ export default function NewCategorySheet({ onClose, onAdded }) {
 
   const save = async (e) => {
     e.preventDefault()
-    const created = await run(() => api('/expense-categories', { method: 'POST', body: { name, icon } }))
+    const created = await run(() => api('/expense-categories', { method: 'POST', body: { name } }))
     if (created) onAdded(created)
   }
 
@@ -33,15 +31,6 @@ export default function NewCategorySheet({ onClose, onAdded }) {
         <Field label="Category name">
           <input value={name} onChange={(e) => setName(capTyped(e))} required maxLength={40} placeholder="e.g. Rent" autoFocus />
         </Field>
-        <Group label="Icon (optional)">
-          <div className="icon-grid">
-            {EXPENSE_ICONS.map((i) => (
-              <button type="button" key={i} className={`icon-pick ${icon === i ? 'active' : ''}`} aria-pressed={icon === i} aria-label={`${i} icon`} onClick={() => setIcon(icon === i ? '' : i)}>
-                <Icon name={i} />
-              </button>
-            ))}
-          </div>
-        </Group>
         <ErrorBox error={error} />
         <div className="btn-grid">
           <button type="button" className="btn" disabled={busy} onClick={onClose}>

@@ -15,8 +15,12 @@ import Renewals from './pages/Renewals.jsx'
 import Stock from './pages/Stock.jsx'
 import StockLedger from './pages/StockLedger.jsx'
 import WhatsApp from './pages/WhatsApp.jsx'
+import Affordable from './site/Affordable.jsx'
 import Features from './site/Features.jsx'
+import FreeApp from './site/FreeApp.jsx'
 import Home from './site/Home.jsx'
+import StockManagement from './site/StockManagement.jsx'
+import WhatsAppAutomation from './site/WhatsAppAutomation.jsx'
 import AddMemberSheet from './sheets/AddMemberSheet.jsx'
 
 // The first page after login, and where unknown addresses go.
@@ -43,6 +47,10 @@ export default function App() {
         {/* The website is for visitors only: once logged in, only the app shows. */}
         <Route path="/" element={authed ? <Navigate to={HOME} replace /> : <Home />} />
         <Route path="/features" element={authed ? <Navigate to={HOME} replace /> : <Features />} />
+        <Route path="/affordable-gym-management-software" element={authed ? <Navigate to={HOME} replace /> : <Affordable />} />
+        <Route path="/gym-management-app-free" element={authed ? <Navigate to={HOME} replace /> : <FreeApp />} />
+        <Route path="/whatsapp-automation-for-gyms" element={authed ? <Navigate to={HOME} replace /> : <WhatsAppAutomation />} />
+        <Route path="/gym-stock-management-software" element={authed ? <Navigate to={HOME} replace /> : <StockManagement />} />
         <Route path="/login" element={<LoginRoute authed={authed} onDone={() => setAuthed(true)} />} />
         <Route path="*" element={authed ? <Shell onLogout={logout} /> : <ToLogin />} />
       </Routes>

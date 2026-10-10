@@ -682,8 +682,25 @@ a.w-card:hover {
   font-weight: 500;
 }
 
-.w-footer-links a:hover {
+.w-footer-links a:hover,
+.w-footer-group a:hover {
   color: #fff;
+}
+
+/* A titled group of links ("PRODUCT"), the links one under another. */
+.w-footer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.w-footer-group h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.55);
 }
 
 .w-footer-bottom {
@@ -1234,4 +1251,288 @@ a.w-card:hover {
 /* The grey time is too faint on the green bubble. */
 :root[data-theme='dark'] .m-bubble.me small {
   color: #c2d9d4;
+}
+
+/* The closing words under a grid of cards. */
+.w-note {
+  max-width: 760px;
+  margin: 36px auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.w-note h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.w-note p {
+  color: var(--muted);
+}
+
+.w-note .w-more {
+  margin-top: 4px;
+}
+
+/* ---- Affordable Gym Management Software page ---- */
+
+.w-hero-actions.center {
+  justify-content: center;
+}
+
+/* The price in a card of its own, beside what it buys. */
+.w-price {
+  display: grid;
+  gap: 28px;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .w-price {
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+
+.w-price-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 32px 28px;
+  border-radius: 24px;
+  color: #fff;
+  background: var(--grad-brand);
+  box-shadow: var(--shadow-brand);
+}
+
+.w-price-card > span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.w-price-amount {
+  font-size: clamp(3rem, 9vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.w-price-amount small {
+  margin-left: 8px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  opacity: 0.85;
+}
+
+.w-price-card .w-btn {
+  margin-top: 14px;
+}
+
+.w-price-text h2 {
+  margin-top: 14px;
+  font-size: clamp(1.5rem, 3.6vw, 2.1rem);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.w-price-text > p {
+  margin-top: 12px;
+  color: var(--muted);
+}
+
+.w-ticks {
+  display: grid;
+  gap: 10px 20px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 500;
+}
+
+@media (min-width: 600px) {
+  .w-ticks {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.w-ticks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.w-ticks .icon,
+.w-compare td .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ok);
+}
+
+/* By hand against the app: a plain table, scrolled sideways on a narrow phone. */
+.w-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.w-compare {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.w-compare th,
+.w-compare td {
+  padding: 14px 18px;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--border);
+}
+
+.w-compare thead th {
+  border-top: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+
+.w-compare tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.w-compare td {
+  color: var(--muted);
+}
+
+.w-compare td:last-child {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.w-compare td .icon {
+  margin-right: 8px;
+  vertical-align: -3px;
+}
+
+.w-after {
+  margin-top: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.w-after a,
+.w-feature-text p a {
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* ---- FAQ accordion (Faq.jsx): one card per question, the answer opens under it ---- */
+
+.w-accordion {
+  max-width: 820px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+
+.w-accordion details {
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.w-accordion details[open] {
+  border-color: var(--brand-ring);
+  box-shadow: var(--shadow);
+}
+
+.w-accordion summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius);
+}
+
+.w-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.w-accordion summary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.w-accordion summary h3 {
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.w-accordion summary .icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+
+.w-accordion details[open] summary .icon {
+  transform: rotate(180deg);
+  color: var(--brand);
+}
+
+.w-accordion-a {
+  padding: 0 20px 20px;
+}
+
+.w-accordion-a p {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.w-accordion-a a {
+  font-weight: 600;
+  color: var(--brand);
+}
+
+@media (min-width: 700px) {
+  .w-accordion summary {
+    padding: 20px 24px;
+  }
+
+  .w-accordion-a {
+    padding: 0 24px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .w-accordion details,
+  .w-accordion summary .icon {
+    transition: none;
+  }
 }

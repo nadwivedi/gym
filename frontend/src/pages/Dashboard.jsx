@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLoad } from '../api.js'
 import { ColumnChart, GroupedChart, ShareBars, TrendChart } from '../components/charts.jsx'
 import { Icon, Loading } from '../components/ui.jsx'
 import TopMenu from '../components/TopMenu.jsx'
 import { useApp } from '../context.js'
-import { MONTHS, MONTH_NAMES, fmtDate, money, moneyShort } from '../format.js'
+import { MONTHS, MONTH_NAMES, money, moneyShort } from '../format.js'
 import ExpenseSheet from '../sheets/ExpenseSheet.jsx'
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
@@ -16,7 +16,7 @@ const SERIES = [
 ]
 
 export default function Dashboard() {
-  const { settings, today, modes } = useApp()
+  const { today, modes } = useApp()
   const thisYear = Number(today.slice(0, 4))
   const thisMonth = Number(today.slice(5, 7))
   const [year, setYear] = useState(thisYear)
@@ -29,19 +29,24 @@ export default function Dashboard() {
   if (data && data !== shown) setShown(data)
   const stats = data || shown
 
-  const header = (
-    <header className="topbar">
+  // The page's header. On a laptop the date button sits at its far end; on a phone the year and month pickers stay the first row of the page.
+  const head = (picker) => (
+    <header className="topbar dash-head">
+      <span className="head-icon">
+        <Icon name="home" />
+      </span>
       <h1>
-        {settings.gymName}
-        <span className="sub">Dashboard · {fmtDate(today)}</span>
+        Dashboard
+        <span className="sub">Welcome back! Here&apos;s your gym overview.</span>
       </h1>
+      {picker}
       <TopMenu />
     </header>
   )
   if (!stats) {
     return (
       <>
-        {header}
+        {head(null)}
         <div className="page dash">
           <Loading error={error} />
         </div>
@@ -61,29 +66,43 @@ export default function Dashboard() {
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value)
 
+  const filters = (
+    <div className="filters">
+      <div className="stepper" role="group" aria-label="Year">
+        <button className="btn small" disabled={year <= stats.firstYear} onClick={() => pickYear(year - 1)} aria-label="Previous year">
+          <Icon name="back" />
+        </button>
+        <b>{year}</b>
+        <button className="btn small flip" disabled={year >= stats.lastYear} onClick={() => pickYear(year + 1)} aria-label="Next year">
+          <Icon name="back" />
+        </button>
+      </div>
+      <select className="search" value={month} onChange={(e) => setMonth(Number(e.target.value))} aria-label="Month">
+        <option value={0}>Full year</option>
+        {MONTH_NAMES.map((name, i) => (
+          <option key={name} value={i + 1}>
+            {name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+
   return (
     <>
-      {header}
+      {head(
+        <PeriodPicker
+          label={month ? `${MONTH_NAMES[month - 1]} ${year}` : `Full year ${year}`}
+          year={year}
+          month={month}
+          canPrev={year > stats.firstYear}
+          canNext={year < stats.lastYear}
+          onYear={pickYear}
+          onMonth={setMonth}
+        />,
+      )}
       <div className="page dash" style={{ opacity: loading && !data ? 0.6 : 1 }}>
-        <div className="filters">
-          <div className="stepper" role="group" aria-label="Year">
-            <button className="btn small" disabled={year <= stats.firstYear} onClick={() => pickYear(year - 1)} aria-label="Previous year">
-              <Icon name="back" />
-            </button>
-            <b>{year}</b>
-            <button className="btn small flip" disabled={year >= stats.lastYear} onClick={() => pickYear(year + 1)} aria-label="Next year">
-              <Icon name="back" />
-            </button>
-          </div>
-          <select className="search" value={month} onChange={(e) => setMonth(Number(e.target.value))} aria-label="Month">
-            <option value={0}>Full year</option>
-            {MONTH_NAMES.map((name, i) => (
-              <option key={name} value={i + 1}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {filters}
 
         <div className="stat-grid">
           <Link to="/members" className="stat green">
@@ -303,5 +322,61 @@ export default function Dashboard() {
         />
       )}
     </>
+  )
+}
+
+// The date button in the header (laptop): "October 2026", with a small panel under it to pick the year and the month.
+function PeriodPicker({ label, year, month, canPrev, canNext, onYear, onMonth }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e) => !ref.current?.contains(e.target) && setOpen(false)
+    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('pointerdown', onDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const pick = (m) => {
+    onMonth(m)
+    setOpen(false)
+  }
+
+  return (
+    <div className="period" ref={ref}>
+      <button className="period-btn" onClick={() => setOpen((o) => !o)} aria-haspopup="dialog" aria-expanded={open}>
+        <Icon name="calendar" />
+        <b>{label}</b>
+        <Icon name="down" />
+      </button>
+      {open && (
+        <div className="period-pop" role="dialog" aria-label="Choose the year and month">
+          <div className="stepper wide" role="group" aria-label="Year">
+            <button className="btn small" disabled={!canPrev} onClick={() => onYear(year - 1)} aria-label="Previous year">
+              <Icon name="back" />
+            </button>
+            <b>{year}</b>
+            <button className="btn small flip" disabled={!canNext} onClick={() => onYear(year + 1)} aria-label="Next year">
+              <Icon name="back" />
+            </button>
+          </div>
+          <div className="period-months">
+            {MONTHS.map((name, i) => (
+              <button key={name} className={`chip ${month === i + 1 ? 'active' : ''}`} aria-pressed={month === i + 1} onClick={() => pick(i + 1)}>
+                {name}
+              </button>
+            ))}
+          </div>
+          <button className={`chip ${month === 0 ? 'active' : ''}`} aria-pressed={month === 0} onClick={() => pick(0)}>
+            Full year {year}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

@@ -1,3 +1,4 @@
+import './env.js'
 import os from 'node:os'
 import mongoose from 'mongoose'
 import { createApp } from './app.js'
@@ -7,11 +8,14 @@ import { startReminderJob } from './whatsapp/reminders.js'
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/gymsoft'
 const PORT = Number(process.env.PORT) || 4000
+console.log(PORT)
+// The address without its password, for messages.
+const SAFE_MONGO_URL = MONGO_URL.replace(/\/\/([^:/@]+):[^/]*@/, '//$1:****@')
 
 try {
   await mongoose.connect(MONGO_URL, { serverSelectionTimeoutMS: 5000 })
 } catch (err) {
-  console.error(`Could not connect to MongoDB at ${MONGO_URL}. Is the MongoDB service running?\n${err.message}`)
+  console.error(`Could not connect to MongoDB at ${SAFE_MONGO_URL}. Is the MongoDB service running?\n${err.message}`)
   process.exit(1)
 }
 await seedDefaults()

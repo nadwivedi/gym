@@ -39,6 +39,9 @@ export default function Stock() {
   return (
     <>
       <header className="topbar">
+        <span className="head-icon">
+          <Icon name="box" />
+        </span>
         <h1>
           Stock
           <span className="sub">Protein, creatine, clothes and more</span>

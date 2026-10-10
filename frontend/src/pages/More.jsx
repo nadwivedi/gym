@@ -23,6 +23,9 @@ export default function More() {
         <Link to="/renewals" className="btn small" aria-label="Back to renewals">
           <Icon name="back" />
         </Link>
+        <span className="head-icon">
+          <Icon name="settings" />
+        </span>
         <h1>Settings</h1>
         <TopMenu />
       </header>

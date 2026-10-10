@@ -48,7 +48,13 @@ export default function WhatsApp() {
         <Link to="/more" className="btn small" aria-label="Back to settings">
           <Icon name="back" />
         </Link>
-        <h1>WhatsApp reminders</h1>
+        <span className="head-icon">
+          <Icon name="chat" />
+        </span>
+        <h1>
+          WhatsApp
+          <span className="sub">Renewal reminders</span>
+        </h1>
         <TopMenu />
       </header>
       <div className="page wa split">

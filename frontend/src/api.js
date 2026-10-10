@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 
 const TOKEN_KEY = 'gym_token'
 
+// The backend's address (VITE_API_URL in .env). Empty: the backend is on this site's own address.
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api'
+
 export const getToken = () => localStorage.getItem(TOKEN_KEY) || ''
 export const setToken = (t) => (t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY))
 
@@ -21,7 +24,7 @@ function signedOut() {
 export async function api(path, { method = 'GET', body } = {}) {
   let res
   try {
-    res = await fetch('/api' + path, {
+    res = await fetch(API + path, {
       method,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
       body: body ? JSON.stringify(body) : undefined,
@@ -39,7 +42,7 @@ export async function api(path, { method = 'GET', body } = {}) {
 export async function upload(path, file) {
   let res
   try {
-    res = await fetch('/api' + path, { method: 'PUT', headers: { 'Content-Type': file.type, Authorization: `Bearer ${getToken()}` }, body: file })
+    res = await fetch(API + path, { method: 'PUT', headers: { 'Content-Type': file.type, Authorization: `Bearer ${getToken()}` }, body: file })
   } catch {
     throw new ApiError('Cannot reach the gym server. Is it running?', 0, {})
   }
@@ -60,7 +63,7 @@ export async function saveWithDuplicateCheck(send) {
 }
 
 export async function download(path, filename) {
-  const res = await fetch('/api' + path, { headers: { Authorization: `Bearer ${getToken()}` } })
+  const res = await fetch(API + path, { headers: { Authorization: `Bearer ${getToken()}` } })
   if (!res.ok) throw new ApiError('Download failed', res.status, {})
   const url = URL.createObjectURL(await res.blob())
   const a = document.createElement('a')

@@ -19,6 +19,9 @@ export default function Payments() {
   return (
     <>
       <header className="topbar">
+        <span className="head-icon">
+          <Icon name="wallet" />
+        </span>
         <h1>Payments</h1>
         <TopMenu />
       </header>

@@ -271,6 +271,49 @@ export function InventoryMock() {
   )
 }
 
+// One product's ledger, newest first: [icon, colour, what happened, details, change, left after it].
+// 20 bought − 7 sold − 1 damaged = 12 left; profit 7 × (₹2,400 − ₹1,900) = ₹3,500.
+const LEDGER = [
+  ['rupee', 'blue', 'Sold 2', '8 Oct · Rahul Verma · UPI', '12 left'],
+  ['rupee', 'blue', 'Sold 1', '5 Oct · Cash', '14 left'],
+  ['box', 'purple', 'Bought 10', '1 Oct · Bill no. 245', '15 left'],
+  ['edit', 'orange', 'Count corrected −1', '30 Sep · 1 damaged', '5 left'],
+]
+
+export function StockLedgerMock() {
+  return (
+    <Frame title="Whey Protein 1 kg · Ledger" icon="box">
+      <div className="m-tiles">
+        <div className="m-tile">
+          <small>Bought</small>
+          <b>20 pcs</b>
+        </div>
+        <div className="m-tile income">
+          <small>Sold</small>
+          <b>7 pcs</b>
+        </div>
+        <div className="m-tile profit">
+          <small>Profit</small>
+          <b>₹3,500</b>
+        </div>
+      </div>
+      <div className="m-sub-title">Every entry</div>
+      {LEDGER.map(([icon, tone, title, sub, left]) => (
+        <div key={title + sub} className="m-row">
+          <span className={`m-avatar tone-${tone}`}>
+            <Icon name={icon} />
+          </span>
+          <div className="m-row-main">
+            <b>{title}</b>
+            <small>{sub}</small>
+          </div>
+          <span className="m-badge info">{left}</span>
+        </div>
+      ))}
+    </Frame>
+  )
+}
+
 const TRAINERS = [
   ['VS', 'Vikram Singh', 18, 42],
   ['SM', 'Sonal Mehta', 12, 30],

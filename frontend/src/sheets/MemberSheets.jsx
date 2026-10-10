@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { memberAge } from '../../../shared/domain.mjs'
 import { api, saveWithDuplicateCheck, useAction } from '../api.js'
 import { DateInput, PersonalFields, PhoneInput } from '../components/fields.jsx'
-import { ErrorBox, Field, Sheet } from '../components/ui.jsx'
+import { ErrorBox, Field, Icon, Sheet } from '../components/ui.jsx'
 import { useApp } from '../context.js'
 import { capTyped, personalBody } from '../format.js'
 
@@ -62,11 +62,7 @@ export function EditMemberSheet({ member, onClose, onDone, onDeleted }) {
     if (saved) onDone(saved)
   }
 
-  const remove = async () => {
-    if (!window.confirm(`Delete ${member.name} completely? Use this only for a wrong entry.`)) return
-    const done = await run(() => api(`/members/${member.id}`, { method: 'DELETE' }))
-    if (done) onDeleted()
-  }
+  const [confirming, setConfirming] = useState(false)
 
   return (
     <Sheet title="Edit member" onClose={onClose}>
@@ -98,10 +94,67 @@ export function EditMemberSheet({ member, onClose, onDone, onDeleted }) {
         <button className="btn primary block" disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
-        <button type="button" className="btn danger block" disabled={busy} onClick={remove}>
+        <button type="button" className="btn danger block" disabled={busy} onClick={() => setConfirming(true)}>
           Delete member (wrong entry)
         </button>
       </form>
+      {confirming && <DeleteMemberSheet member={member} onClose={() => setConfirming(false)} onDeleted={onDeleted} />}
     </Sheet>
+  )
+}
+
+// The confirmation before a member is deleted, from the member's page or the edit form. Nothing is deleted until the red button is pressed.
+export function DeleteMemberSheet({ member, onClose, onDeleted }) {
+  const { busy, error, run } = useAction()
+  // Closing plays a short fade first; index.css times it to match.
+  const [closing, setClosing] = useState(false)
+  const cancel = useCallback(() => {
+    if (busy || closing) return
+    setClosing(true)
+    setTimeout(onClose, 150)
+  }, [busy, closing, onClose])
+
+  useEffect(() => {
+    // Escape closes only this popup, not the edit form it may be sitting on.
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopImmediatePropagation()
+      cancel()
+    }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey, true)
+    }
+  }, [cancel])
+
+  const remove = async () => {
+    if (await run(() => api(`/members/${member.id}`, { method: 'DELETE' }))) onDeleted()
+  }
+
+  return (
+    <div className={`sheet-backdrop confirm-backdrop ${closing ? 'closing' : ''}`} onMouseDown={(e) => e.target === e.currentTarget && cancel()}>
+      <div className="confirm" role="alertdialog" aria-modal="true" aria-labelledby="delete-member-title" aria-describedby="delete-member-text">
+        <span className="confirm-icon">
+          <Icon name="trash" />
+        </span>
+        <h2 id="delete-member-title">Delete Member?</h2>
+        <p className="confirm-name">{member.name}</p>
+        <p id="delete-member-text" className="hint">
+          Are you sure you want to delete this member? This action cannot be undone.
+        </p>
+        <ErrorBox error={error} />
+        <div className="btn-grid">
+          <button type="button" className="btn" disabled={busy} onClick={cancel} autoFocus>
+            Cancel
+          </button>
+          <button type="button" className="btn danger solid" disabled={busy} onClick={remove}>
+            {busy ? 'Deleting…' : 'Delete Member'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
