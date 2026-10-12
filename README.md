@@ -24,6 +24,18 @@ npm --prefix backend test           # rules + API tests (uses the gymsoft_test d
 npm --prefix frontend run build     # build the screens; `npm --prefix backend start` then serves them on port 4000
 ```
 
+### Demo members
+
+For screenshots and videos, add 20 sample members (active, due today, expiring this week, expired, part paid and hidden) to one gym account. Run from the `backend` folder:
+
+```
+npm run seed-demo -- owner@example.com            # add them (running it again adds nothing)
+npm run seed-demo -- owner@example.com --refresh  # replace them, with dates counted from today
+npm run seed-demo -- owner@example.com --remove   # delete them again
+```
+
+Demo members have "Demo member" in their notes, and only those are ever replaced or deleted. Dates are counted from the day the script runs, so refresh on the day you record. The script will not run while that gym has a linked WhatsApp number with automatic reminders on, because the made-up numbers would be messaged.
+
 ## Layout
 
 - `shared/domain.mjs`: date, renewal and balance rules used by both sides

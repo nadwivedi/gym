@@ -1,35 +1,36 @@
 import { Link } from 'react-router-dom'
 import { Icon } from '../components/ui.jsx'
 import Faq from './Faq.jsx'
+import { MULTI_GYM, OFFERS, PRO, STARTER, perMonth, rupees } from './pricing.js'
 import SiteLayout, { AppButton, CtaBand } from './SiteLayout.jsx'
 import { WHATSAPP_URL } from './whatsapp.js'
 
-// The price this page is about. It is also in the page title, the description and the search-engine data below.
-const PRICE = 150
+// The starting price this page is about. It is also in the page title, the description and the search-engine data below.
+const PRICE = rupees(STARTER)
 
 const INCLUDED = [
   'Member records and renewal tracking',
   'Payments and pending dues',
-  'Automatic WhatsApp renewal reminders',
   'Expenses and monthly profit',
   'Supplement and stock inventory',
+  'Staff and trainer access',
   'Works on your phone and computer',
 ]
 
 // [icon, colour, heading, text]
 const REASONS = [
-  ['rupee', 'green', 'A low monthly price', `Plans start at ₹${PRICE} per month, so even a small neighbourhood gym can move from registers to software.`],
+  ['rupee', 'green', 'A low yearly price', `Plans start at ${PRICE} a year, about ₹${perMonth(STARTER)} a month, so even a small neighbourhood gym can move from registers to software.`],
   ['phone', 'blue', 'No new hardware to buy', 'GymSolution runs in the browser on the phone and computer you already own. There is nothing to install.'],
-  ['chat', 'green', 'Less manual work', 'Renewal lists, due amounts and WhatsApp reminders are prepared for you, so the front desk spends minutes on them, not hours.'],
+  ['chat', 'green', 'Less manual work', 'Renewal lists and due amounts are prepared for you, and on the Pro plan WhatsApp reminders go out by themselves.'],
   ['calendar', 'purple', 'Fewer missed renewals', 'Every overdue and due-today member is on one screen, with Call and WhatsApp one tap away.'],
   ['chart', 'orange', 'Clear profit every month', 'Income, expenses and profit are added up for you month by month, so you always know where the gym stands.'],
-  ['building', 'blue', 'Grows with your gym', 'Use it for a single gym or several branches, with staff and trainer access when you need it.'],
+  ['building', 'blue', 'Grows with your gym', `Start with one gym, then move to the Multi-Gym plan (${rupees(MULTI_GYM)} a year) when you open more branches.`],
 ]
 
 // [the job, by hand, with GymSolution]
 const COMPARE = [
   ['Renewals', 'Checked in a register, easy to miss', 'Overdue, due today and next 7 days, listed for you'],
-  ['Reminders', 'Call or message every member yourself', 'WhatsApp reminders sent automatically on the due date'],
+  ['Reminders', 'Call or message every member yourself', 'One tap to WhatsApp a member, or sent automatically on the Pro plan'],
   ['Pending dues', 'Remembered, or written on a slip', 'Every balance tracked against the member until it is paid'],
   ['Expenses and profit', 'Added up at the end of the month', 'Income, expenses and profit shown for every month'],
   ['Supplement stock', 'Counted on the shelf', 'Purchases, sales and low stock recorded item by item'],
@@ -38,11 +39,12 @@ const COMPARE = [
 const FAQS = [
   {
     q: 'How much does GymSolution gym management software cost?',
-    a: `GymSolution plans start at ₹${PRICE} per month, about ₹${PRICE / 30} a day, for software that keeps your members, renewals, payments and reminders in order. Message us on WhatsApp and we will suggest the plan that fits your gym.`,
+    a: `GymSolution plans start at ${PRICE} a year (about ₹${perMonth(STARTER)} a month). The Pro plan with automatic WhatsApp reminders is ${rupees(PRO)} a year, and the Multi-Gym plan is ${rupees(MULTI_GYM)} a year. Message us on WhatsApp and we will suggest the plan that fits your gym.`,
+    link: ['/gym-management-software-pricing', 'Compare all plans.'],
   },
   {
     q: 'What does this affordable gym management software include?',
-    a: 'Member records, renewal tracking, payments and pending dues, automatic WhatsApp reminders, expense and profit tracking, and supplement and stock inventory, all in one app.',
+    a: 'Every plan has member records, renewal tracking, payments and pending dues, expense and profit tracking, and supplement and stock inventory, all in one app. The Pro plan adds automatic WhatsApp reminders, and Multi-Gym adds more branches.',
     link: ['/features', 'See each feature in detail.'],
   },
   {
@@ -51,12 +53,12 @@ const FAQS = [
   },
   {
     q: 'Is it affordable for a small gym with under 100 members?',
-    a: `Yes. GymSolution is built for owners who run the gym themselves, and plans start at ₹${PRICE} a month. It is simple enough for the front desk, and a small gym can replace its registers and diaries with it.`,
+    a: `Yes. GymSolution is built for owners who run the gym themselves, and plans start at ${PRICE} a year. It is simple enough for the front desk, and a small gym can replace its registers and diaries with it.`,
     link: ['/gym-management-app-free', 'Try it free with your own members.'],
   },
   {
     q: 'How does gym software save a gym money every month?',
-    a: 'It stops small losses that are easy to miss by hand: renewals nobody followed up and balances never collected. GymSolution lists every overdue member, keeps each pending balance against the member, and sends the renewal reminder on the due date for you.',
+    a: 'It stops small losses that are easy to miss by hand: renewals nobody followed up and balances never collected. GymSolution lists every overdue member and keeps each pending balance against the member, and on the Pro plan it sends the renewal reminder on the due date for you.',
   },
 ]
 
@@ -69,25 +71,25 @@ const STRUCTURED = [
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     description: 'Affordable gym management software for gym owners: members, renewals, payments, expenses, stock and automatic WhatsApp reminders.',
-    offers: { '@type': 'Offer', price: String(PRICE), priceCurrency: 'INR', description: 'Starting price per month' },
+    offers: OFFERS,
   },
 ]
 
 export default function Affordable() {
   return (
     <SiteLayout
-      title={`Affordable Gym Management Software from ₹${PRICE}/month – GymSolution`}
-      description={`GymSolution is affordable gym management software starting at ₹${PRICE} per month. Manage members, renewals, payments, expenses, stock and automatic WhatsApp reminders in one simple app.`}
+      title={`Affordable Gym Management Software from ${PRICE}/year – GymSolution`}
+      description={`GymSolution is affordable gym management software starting at ${PRICE} per year. Manage members, renewals, payments, expenses, stock and automatic WhatsApp reminders in one simple app.`}
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED) }} />
 
       <section className="w-hero small">
         <div className="w-container w-page-head">
-          <span className="w-eyebrow">Plans from ₹{PRICE} per month</span>
+          <span className="w-eyebrow">Plans from {PRICE} per year</span>
           <h1>Affordable Gym Management Software</h1>
           <p>
             GymSolution gives gym owners member records, renewal tracking, payments, expenses, stock and automatic WhatsApp reminders in one simple app, with
-            plans starting at just ₹{PRICE} per month.
+            plans starting at just {PRICE} per year.
           </p>
           <div className="w-hero-actions center">
             <AppButton />
@@ -103,10 +105,10 @@ export default function Affordable() {
           <div className="w-price-card">
             <span>Starts at</span>
             <p className="w-price-amount">
-              ₹{PRICE}
-              <small>/ month</small>
+              {PRICE}
+              <small>/ year</small>
             </p>
-            <p>About ₹{PRICE / 30} a day for your whole gym.</p>
+            <p>About ₹{perMonth(STARTER)} a month for your whole gym. Add automatic WhatsApp for {rupees(PRO)} a year.</p>
             <AppButton className="w-btn light" />
           </div>
           <div className="w-price-text">
@@ -114,7 +116,7 @@ export default function Affordable() {
             <h2>Gym software at a price every gym can afford</h2>
             <p>
               Most gyms lose money in small, quiet ways: a renewal nobody followed up, a balance that was never collected, an expense that was never written
-              down. GymSolution keeps all of it in one place for ₹{PRICE} a month. A single renewal you would otherwise have missed can pay for many months of
+              down. GymSolution keeps all of it in one place from {PRICE} a year. A single renewal you would otherwise have missed can pay for many months of
               the software.
             </p>
             <ul className="w-ticks">

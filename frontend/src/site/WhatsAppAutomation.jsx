@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { Icon } from '../components/ui.jsx'
 import Faq from './Faq.jsx'
 import SiteLayout, { CtaBand } from './SiteLayout.jsx'
+import { ReminderChatMock } from './mocks.jsx'
+import { MULTI_GYM, OFFERS, PRO, rupees } from './pricing.js'
 import { whatsappLink } from './whatsapp.js'
 
 const TRIAL_URL = whatsappLink('Hi, I want to try GymSolution WhatsApp automation for my gym.')
@@ -65,6 +67,11 @@ const FAQS = [
     a: 'Yes, in one tap. Every member has a WhatsApp button that opens the chat with the message already written for an upcoming renewal or a pending balance. Read it, change it if you like, and press send.',
   },
   { q: 'Can I see which reminders were sent?', a: 'Yes. The WhatsApp page keeps a log of recent messages with their status: sent, waiting, failed or not needed.' },
+  {
+    q: 'Which GymSolution plan has automatic WhatsApp reminders?',
+    a: `The Pro plan at ${rupees(PRO)} a year, and the Multi-Gym plan at ${rupees(MULTI_GYM)} a year for owners with more than one gym. There is no charge per message on either.`,
+    link: ['/gym-management-software-pricing', 'Compare all plans.'],
+  },
 ]
 
 // What search engines read about the page: the software. The questions are added by Faq.
@@ -76,40 +83,9 @@ const STRUCTURED = [
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     description: 'WhatsApp automation for gyms: automatic renewal reminders to members from the gym’s own WhatsApp number, with member, payment and expense management.',
-    offers: { '@type': 'Offer', price: '150', priceCurrency: 'INR', description: 'Free trial available. Paid plans start at this price per month.' },
+    offers: OFFERS,
   },
 ]
-
-// What a member sees on their phone: the reminder GymSolution sends (the app's own wording), then the follow-up.
-function MemberChat() {
-  return (
-    <div className="m-frame m-wa" aria-hidden="true">
-      <div className="m-bar wa">
-        <span className="m-avatar">IF</span>
-        <div className="m-row-main">
-          <b>Iron Fitness Gym</b>
-          <small>online</small>
-        </div>
-      </div>
-      <div className="m-body m-wa-body">
-        <div className="m-wa-date">5 October · renewal date</div>
-        <div className="m-bubble">
-          Hi Rahul Verma, your membership at Iron Fitness Gym ended on 5 Oct 2026. Please renew to continue your workouts. Thank you!
-          <small>9:00 AM</small>
-        </div>
-        <div className="m-wa-date">7 October · two days later</div>
-        <div className="m-bubble">
-          Hi Rahul Verma, your membership at Iron Fitness Gym ended on 5 Oct 2026. Please renew to continue your workouts. Thank you!
-          <small>9:00 AM</small>
-        </div>
-        <div className="m-bubble me">
-          Sorry sir, coming today to renew 👍
-          <small>9:20 AM ✓✓</small>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // What the gym owner sees: the messages the app writes when they tap a member's WhatsApp button.
 function OwnerChat() {
@@ -163,7 +139,7 @@ export default function WhatsAppAutomation() {
               Start free trial
               <Icon name="arrow" />
             </a>
-            <Link to="/affordable-gym-management-software" className="w-btn ghost">
+            <Link to="/gym-management-software-pricing" className="w-btn ghost">
               See pricing
             </Link>
           </div>
@@ -190,7 +166,7 @@ export default function WhatsAppAutomation() {
             </ul>
           </div>
           <div className="w-feature-visual">
-            <MemberChat />
+            <ReminderChatMock />
           </div>
         </section>
       </div>

@@ -15,12 +15,27 @@ import Renewals from './pages/Renewals.jsx'
 import Stock from './pages/Stock.jsx'
 import StockLedger from './pages/StockLedger.jsx'
 import WhatsApp from './pages/WhatsApp.jsx'
+import AiGymSoftware from './site/AiGymSoftware.jsx'
 import Affordable from './site/Affordable.jsx'
+import BestSoftware from './site/BestSoftware.jsx'
+import DuesCollection from './site/DuesCollection.jsx'
+import ExpenseTracking from './site/ExpenseTracking.jsx'
+import ExpiryReport from './site/ExpiryReport.jsx'
 import Features from './site/Features.jsx'
+import ManagementApp from './site/ManagementApp.jsx'
+import ManagementWebsite from './site/ManagementWebsite.jsx'
+import MembershipApp from './site/MembershipApp.jsx'
+import MembershipManagement from './site/MembershipManagement.jsx'
+import MembershipSystem from './site/MembershipSystem.jsx'
 import FreeApp from './site/FreeApp.jsx'
 import Home from './site/Home.jsx'
+import Pricing from './site/Pricing.jsx'
+import ProfitLossReport from './site/ProfitLossReport.jsx'
+import RenewalSoftware from './site/RenewalSoftware.jsx'
+import StaffManagement from './site/StaffManagement.jsx'
 import StockManagement from './site/StockManagement.jsx'
 import WhatsAppAutomation from './site/WhatsAppAutomation.jsx'
+import WhatsAppReminders from './site/WhatsAppReminders.jsx'
 import AddMemberSheet from './sheets/AddMemberSheet.jsx'
 
 // The first page after login, and where unknown addresses go.
@@ -47,9 +62,24 @@ export default function App() {
         {/* The website is for visitors only: once logged in, only the app shows. */}
         <Route path="/" element={authed ? <Navigate to={HOME} replace /> : <Home />} />
         <Route path="/features" element={authed ? <Navigate to={HOME} replace /> : <Features />} />
+        <Route path="/gym-management-software-pricing" element={authed ? <Navigate to={HOME} replace /> : <Pricing />} />
+        <Route path="/ai-gym-management-software" element={authed ? <Navigate to={HOME} replace /> : <AiGymSoftware />} />
+        <Route path="/best-software-for-gym-management" element={authed ? <Navigate to={HOME} replace /> : <BestSoftware />} />
+        <Route path="/gym-membership-management-software" element={authed ? <Navigate to={HOME} replace /> : <MembershipManagement />} />
+        <Route path="/gym-membership-management-system" element={authed ? <Navigate to={HOME} replace /> : <MembershipSystem />} />
+        <Route path="/gym-membership-management-app" element={authed ? <Navigate to={HOME} replace /> : <MembershipApp />} />
+        <Route path="/gym-management-app" element={authed ? <Navigate to={HOME} replace /> : <ManagementApp />} />
+        <Route path="/gym-management-website" element={authed ? <Navigate to={HOME} replace /> : <ManagementWebsite />} />
+        <Route path="/gym-membership-renewal-software" element={authed ? <Navigate to={HOME} replace /> : <RenewalSoftware />} />
+        <Route path="/gym-membership-expiry-report-software" element={authed ? <Navigate to={HOME} replace /> : <ExpiryReport />} />
+        <Route path="/gym-expense-tracking-software" element={authed ? <Navigate to={HOME} replace /> : <ExpenseTracking />} />
+        <Route path="/gym-profit-loss-report-software" element={authed ? <Navigate to={HOME} replace /> : <ProfitLossReport />} />
+        <Route path="/gym-dues-collection-software" element={authed ? <Navigate to={HOME} replace /> : <DuesCollection />} />
         <Route path="/affordable-gym-management-software" element={authed ? <Navigate to={HOME} replace /> : <Affordable />} />
         <Route path="/gym-management-app-free" element={authed ? <Navigate to={HOME} replace /> : <FreeApp />} />
         <Route path="/whatsapp-automation-for-gyms" element={authed ? <Navigate to={HOME} replace /> : <WhatsAppAutomation />} />
+        <Route path="/whatsapp-reminder-software-for-gym" element={authed ? <Navigate to={HOME} replace /> : <WhatsAppReminders />} />
+        <Route path="/gym-staff-management-software" element={authed ? <Navigate to={HOME} replace /> : <StaffManagement />} />
         <Route path="/gym-stock-management-software" element={authed ? <Navigate to={HOME} replace /> : <StockManagement />} />
         <Route path="/login" element={<LoginRoute authed={authed} onDone={() => setAuthed(true)} />} />
         <Route path="*" element={authed ? <Shell onLogout={logout} /> : <ToLogin />} />

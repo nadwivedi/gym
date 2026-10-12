@@ -3,6 +3,7 @@ import { Icon } from '../components/ui.jsx'
 import Faq from './Faq.jsx'
 import { FEATURES } from './features.js'
 import { DashboardMock } from './mocks.jsx'
+import { STARTER, rupees } from './pricing.js'
 import SiteLayout, { AppButton, CtaBand } from './SiteLayout.jsx'
 
 const STEPS = [
@@ -188,8 +189,8 @@ export default function Home() {
               for front-desk staff and works on your phone and computer, which makes it a practical, low-cost gym software for a single gym or several
               branches.
             </p>
-            <Link to="/affordable-gym-management-software" className="w-more">
-              See pricing from ₹150 a month <Icon name="arrow" />
+            <Link to="/gym-management-software-pricing" className="w-more">
+              See pricing from {rupees(STARTER)} a year <Icon name="arrow" />
             </Link>
           </div>
         </div>

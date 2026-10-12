@@ -100,10 +100,25 @@ export default function SiteLayout({ title, description, children }) {
           </div>
           <div className="w-footer-group">
             <h3>Product</h3>
+            <Link to="/gym-management-software-pricing">Gym Management Software Pricing</Link>
+            <Link to="/ai-gym-management-software">AI Gym Management Software</Link>
+            <Link to="/best-software-for-gym-management">Best Software for Gym Management</Link>
+            <Link to="/gym-membership-management-software">Gym Membership Management Software</Link>
+            <Link to="/gym-membership-management-system">Gym Membership Management System</Link>
+            <Link to="/gym-membership-management-app">Gym Membership Management App</Link>
+            <Link to="/gym-management-app">Gym Management App</Link>
+            <Link to="/gym-management-website">Gym Management Website</Link>
+            <Link to="/gym-membership-renewal-software">Gym Membership Renewal Software</Link>
+            <Link to="/gym-membership-expiry-report-software">Gym Membership Expiry Report Software</Link>
+            <Link to="/gym-expense-tracking-software">Gym Expense Tracking Software</Link>
+            <Link to="/gym-profit-loss-report-software">Gym Profit and Loss Report Software</Link>
+            <Link to="/gym-dues-collection-software">Gym Dues Collection Software</Link>
             <Link to="/affordable-gym-management-software">Affordable Gym Management Software</Link>
             <Link to="/gym-management-app-free">Gym Management App Free</Link>
             <Link to="/whatsapp-automation-for-gyms">WhatsApp Automation for Gyms</Link>
+            <Link to="/whatsapp-reminder-software-for-gym">WhatsApp Reminder Software for Gym</Link>
             <Link to="/gym-stock-management-software">Gym Stock Management Software</Link>
+            <Link to="/gym-staff-management-software">Gym Staff Management Software</Link>
           </div>
           <div className="w-footer-links">
             <Link to="/">Home</Link>

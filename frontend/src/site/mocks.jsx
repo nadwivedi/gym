@@ -335,3 +335,86 @@ export function TrainersMock() {
   )
 }
 
+// What a member sees on their phone: the reminder GymSolution sends (the app's own wording), then the follow-up.
+export function ReminderChatMock() {
+  return (
+    <div className="m-frame m-wa" aria-hidden="true">
+      <div className="m-bar wa">
+        <span className="m-avatar">IF</span>
+        <div className="m-row-main">
+          <b>Iron Fitness Gym</b>
+          <small>online</small>
+        </div>
+      </div>
+      <div className="m-body m-wa-body">
+        <div className="m-wa-date">5 October · renewal date</div>
+        <div className="m-bubble">
+          Hi Rahul Verma, your membership at Iron Fitness Gym ended on 5 Oct 2026. Please renew to continue your workouts. Thank you!
+          <small>9:00 AM</small>
+        </div>
+        <div className="m-wa-date">7 October · two days later</div>
+        <div className="m-bubble">
+          Hi Rahul Verma, your membership at Iron Fitness Gym ended on 5 Oct 2026. Please renew to continue your workouts. Thank you!
+          <small>9:00 AM</small>
+        </div>
+        <div className="m-bubble me">
+          Sorry sir, coming today to renew 👍
+          <small>9:20 AM ✓✓</small>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const DUES = [
+  ['AG', 'Aman Gupta', 'Quarterly · promised by 15 Oct', '₹1,300', 'warn'],
+  ['IB', 'Ishita Bansal', 'Half-yearly · promised by 20 Oct', '₹2,500', 'warn'],
+  ['MY', 'Manish Yadav', 'Monthly · promised date has passed', '₹1,000', 'bad'],
+  ['KN', 'Kavya Nair', 'Quarterly · paid ₹2,800 of ₹3,300', '₹500', 'warn'],
+]
+
+export function DuesMock() {
+  return (
+    <Frame title="Pending dues" icon="rupee">
+      <div className="m-total">
+        <span>To collect from 4 members</span>
+        <b>₹5,300</b>
+      </div>
+      {DUES.map(([initials, name, sub, amt, tone]) => (
+        <Person key={name} initials={initials} name={name} sub={sub}>
+          <span className={`m-badge ${tone}`}>{amt}</span>
+        </Person>
+      ))}
+    </Frame>
+  )
+}
+
+// The balance message the app writes when the owner taps a member's WhatsApp button.
+export function DuesChatMock() {
+  return (
+    <div className="m-frame m-wa" aria-hidden="true">
+      <div className="m-bar wa">
+        <span className="m-avatar">AG</span>
+        <div className="m-row-main">
+          <b>Aman Gupta</b>
+          <small>Member #18</small>
+        </div>
+      </div>
+      <div className="m-body m-wa-body">
+        <div className="m-wa-date">Balance pending</div>
+        <div className="m-bubble me">
+          Hi Aman Gupta, a balance of ₹1,300 is pending for your membership at Iron Fitness Gym.
+          <small>6:12 PM ✓✓</small>
+        </div>
+        <div className="m-bubble">
+          Sorry, sending on UPI now
+          <small>6:20 PM</small>
+        </div>
+        <div className="m-bubble me">
+          Received ₹1,300, thank you!
+          <small>6:24 PM ✓✓</small>
+        </div>
+      </div>
+    </div>
+  )
+}

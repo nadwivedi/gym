@@ -3,6 +3,7 @@ import { Icon } from '../components/ui.jsx'
 import Faq from './Faq.jsx'
 import { RenewalsMock, WhatsAppMock } from './mocks.jsx'
 import SiteLayout, { CtaBand } from './SiteLayout.jsx'
+import { OFFERS, PRO, STARTER, rupees } from './pricing.js'
 import { whatsappLink } from './whatsapp.js'
 
 // The free trial is asked for on WhatsApp: the website has no sign-up form.
@@ -40,7 +41,7 @@ const IN_THE_APP = [
 const FAQS = [
   {
     q: 'Is the GymSolution gym management app free?',
-    a: 'It is free to try. You can start with a free trial and use the gym management app with your own members. After the trial, plans start at ₹150 per month.',
+    a: `It is free to try. You can start with a free trial and use the gym management app with your own members. After the trial, plans start at ${rupees(STARTER)} per year, or ${rupees(PRO)} per year with automatic WhatsApp reminders.`,
     link: ['/affordable-gym-management-software', 'See what the paid plans include.'],
   },
   { q: 'How do I start the free trial?', a: 'Message us on WhatsApp and ask for a free trial. The Start free trial button on this page opens the chat for you.' },
@@ -69,7 +70,7 @@ const STRUCTURED = [
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     description: 'Gym management app for gym owners with a free trial: members, renewals, payments, expenses, stock and automatic WhatsApp reminders.',
-    offers: { '@type': 'Offer', price: '150', priceCurrency: 'INR', description: 'Free trial available. Paid plans start at this price per month.' },
+    offers: OFFERS,
   },
 ]
 
@@ -144,7 +145,7 @@ export default function FreeApp() {
             ))}
           </ol>
           <p className="w-after">
-            After the free trial, plans start at ₹150 per month. <Link to="/affordable-gym-management-software">See GymSolution pricing</Link>.
+            After the free trial, plans start at {rupees(STARTER)} per year, or {rupees(PRO)} per year with automatic WhatsApp reminders. <Link to="/gym-management-software-pricing">See GymSolution pricing</Link>.
           </p>
         </div>
       </section>

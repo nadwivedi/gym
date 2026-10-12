@@ -3,6 +3,7 @@ import { Icon } from '../components/ui.jsx'
 import Faq from './Faq.jsx'
 import { InventoryMock, StockLedgerMock } from './mocks.jsx'
 import SiteLayout, { CtaBand } from './SiteLayout.jsx'
+import { OFFERS, PRO, STARTER, rupees } from './pricing.js'
 import { whatsappLink } from './whatsapp.js'
 
 const TRIAL_URL = whatsappLink('Hi, I want to try GymSolution stock management for my gym.')
@@ -84,7 +85,7 @@ const FAQS = [
   },
   {
     q: 'Is stock management a paid add-on?',
-    a: 'No. Stock and inventory management comes with GymSolution, together with members, renewals, payments, expenses and WhatsApp reminders. Plans start at ₹150 per month, and you can begin with a free trial.',
+    a: `No. Stock and inventory management comes with GymSolution, together with members, renewals, payments and expenses, in every plan from ${rupees(STARTER)} per year. Automatic WhatsApp reminders come with the ${rupees(PRO)} Pro plan, and you can begin with a free trial.`,
     link: ['/affordable-gym-management-software', 'See GymSolution pricing.'],
   },
 ]
@@ -107,7 +108,7 @@ const STRUCTURED = [
       'Stock ledger with count corrections',
       'Shop sales and purchases in monthly profit',
     ],
-    offers: { '@type': 'Offer', price: '150', priceCurrency: 'INR', description: 'Free trial available. Paid plans start at this price per month.' },
+    offers: OFFERS,
   },
   {
     '@context': 'https://schema.org',
@@ -134,7 +135,7 @@ export default function StockManagement() {
   return (
     <SiteLayout
       title="Gym Stock Management Software – Supplement Inventory | GymSolution"
-      description="Gym stock management software by GymSolution: track supplement and protein stock, purchases, sales, low stock and profit per product. Plans from ₹150/month."
+      description={`Gym stock management software by GymSolution: track supplement and protein stock, purchases, sales, low stock and profit per product. Plans from ${rupees(STARTER)}/year.`}
     >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED) }} />
 
